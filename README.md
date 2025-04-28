@@ -339,4 +339,4 @@ Please ensure your code adheres to the existing style and includes tests where a
 
 ## License
 
-This project is licensed under the MIT License - see the [https://www.google.com/search?q=LICENSE](LICENSE) file for details .
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details .
