@@ -230,7 +230,7 @@ Follow these steps to get the project running locally:
 7.  **Access the application:**
     Open your web browser and navigate to `http://localhost:8080` (or the port configured in `application.properties`).
 
-      * You can optionally run the SQL `INSERT` statements from the [Database Schema & Sample Data](https://www.google.com/search?q=%23database-schema--sample-data) section in your database client to populate the `attractions` table with initial data.
+      * You can optionally run the SQL `INSERT` statements from the [Database Schema & Sample Data](#database-schema--sample-data) section in your database client to populate the `attractions` table with initial data.
 
 ## API Endpoints
 
