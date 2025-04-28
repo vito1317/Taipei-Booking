@@ -20,7 +20,7 @@ This is a Taipei attraction booking system developed using Java Spring Boot. It 
 * **User Authentication:** Secure user registration and login using JWT (JSON Web Tokens).
 * **Trip Booking:** Logged-in users can create new bookings by selecting an attraction, date, time, and price.
 * **Booking Management:** Users can view their upcoming (unpaid/unconfirmed) booking details.
-* **Admin Panel (Optional):** An administrative interface for managing attractions, users, bookings, and viewing statistics/trends.
+* **Admin Panel:** An administrative interface for managing attractions, users, bookings, and viewing statistics/trends.
 
 ## Tech Stack
 
