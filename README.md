@@ -156,3 +156,187 @@ INSERT INTO attractions (name, image_url, is_active) VALUES
 --     FOREIGN KEY (user_id) REFERENCES users(id),
 --     FOREIGN KEY (attraction_id) REFERENCES attractions(id)
 -- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+```
+
+## Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+  * You have installed Java Development Kit (JDK) version 17 or higher.
+  * You have installed Maven.
+  * You have installed and configured your chosen database (e.g., MySQL, PostgreSQL).
+  * You have a tool like `git` installed to clone the repository.
+
+## Getting Started
+
+Follow these steps to get the project running locally:
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone [https://github.com/your-username/taipei-booking.git](https://github.com/your-username/taipei-booking.git) # Replace with your actual repo URL
+    cd taipei-booking
+    ```
+
+2.  **Create the Database:**
+
+      * **Important:** Before configuring the application, you need to create an empty database in your database server (e.g., MySQL, PostgreSQL).
+      * The database should be named `taipei_db` (to match the default configuration below).
+      * Example command for MySQL:
+        ```sql
+        CREATE DATABASE taipei_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        ```
+      * You do **not** need to create the tables manually. Spring Boot with JPA will automatically create or update the tables based on your entity classes (`User.java`, `Attraction.java`, `Booking.java`) when the application starts, thanks to the `spring.jpa.hibernate.ddl-auto=update` setting in `application.properties`.
+
+3.  **Configure the Application:**
+
+      * Open the `src/main/resources/application.properties` file.
+      * Update the following properties with your database connection details:
+        ```properties
+        spring.datasource.url=jdbc:mysql://localhost:3306/taipei_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true # Ensure 'taipei_db' matches the database you created
+        spring.datasource.username=your_db_username
+        spring.datasource.password=your_db_password
+        spring.jpa.hibernate.ddl-auto=update # This allows Spring Boot to manage the schema
+        ```
+
+4.  **Configure JWT Secret:**
+
+      * Set the JWT secret key in `application.properties`:
+        ```properties
+        jwt.secret=YourVeryStrongAndSecretKeyHere # Replace with a strong, secure key
+        jwt.expiration=86400000 # Token expiration time in milliseconds (e.g., 24 hours)
+        ```
+      * **Security Note:** For production, it's highly recommended to use environment variables or a configuration server for sensitive data like database passwords and JWT secrets, rather than hardcoding them in `application.properties`.
+
+5.  **Build the project:**
+
+    ```bash
+    mvn clean install
+    ```
+
+6.  **Run the application:**
+
+    ```bash
+    mvn spring-boot:run
+    ```
+
+    Alternatively, you can run the packaged JAR file:
+
+    ```bash
+    java -jar target/taipei-booking-0.0.1-SNAPSHOT.jar # Adjust JAR filename if necessary
+    ```
+
+7.  **Access the application:**
+    Open your web browser and navigate to `http://localhost:8080` (or the port configured in `application.properties`).
+
+      * You can optionally run the SQL `INSERT` statements from the [Database Schema & Sample Data](https://www.google.com/search?q=%23database-schema--sample-data) section in your database client to populate the `attractions` table with initial data.
+
+## API Endpoints
+
+Here are the main API endpoints provided by the application:
+
+**Authentication (`/api/user`)**
+
+  * `POST /api/user/register`: Register a new user.
+      * Body: `RegisterRequest` (name, email, password)
+  * `POST /api/user/login`: Log in a user.
+      * Body: `LoginRequest` (email, password)
+      * Returns: JWT token and user role.
+  * `GET /api/user/auth`: Get the currently authenticated user's information.
+      * Requires: Valid JWT in Authorization header.
+      * Returns: User details (id, name, email, role) or null if not authenticated.
+
+**Attractions (`/api`)**
+
+  * `GET /api/attractions`: Get a list of active attractions for the frontend.
+      * Returns: List of `AttractionBasicDTO`.
+
+**Bookings (`/api`)**
+
+  * `POST /api/booking`: Create a new booking.
+      * Requires: Valid JWT.
+      * Body: `BookingRequest` (attractionId, date, time, price)
+      * Returns: `{ "ok": true, "bookingId": ... }`
+  * `GET /api/booking`: Get the current user's bookings.
+      * Requires: Valid JWT.
+      * Returns: List of `Booking` objects for the user.
+  * `DELETE /api/booking/{bookingId}`: Delete a specific booking for the current user.
+      * Requires: Valid JWT.
+      * Allowed only for bookings in certain states (e.g., UNPAID).
+      * Returns: `{ "ok": true }` on success.
+  * `POST /api/booking/{bookingId}/pay`: Mark a booking as paid (simulated payment).
+      * Requires: Valid JWT.
+      * Allowed only for bookings in the UNPAID state.
+      * Returns: `{ "ok": true, "message": "...", "bookingId": ..., "newStatus": "PAID" }`
+
+**Admin - Users (`/api/admin/users`)** (Requires ADMIN role)
+
+  * `POST /users`: Create a new user (by admin).
+      * Body: `AdminCreateUserRequestDTO`
+      * Returns: `UserAdminViewDTO` of the created user.
+  * `GET /users`: Get a paginated list of all users.
+      * Supports pagination parameters (e.g., `?page=0&size=10&sort=id,asc`).
+      * Returns: `Page<UserAdminViewDTO>`.
+  * `GET /users/{userId}`: Get details of a specific user.
+      * Returns: `UserAdminViewDTO`.
+  * `PUT /users/{userId}`: Update a specific user's details (by admin).
+      * Body: `AdminUpdateUserRequestDTO`
+      * Returns: `UserAdminViewDTO` of the updated user.
+  * `DELETE /users/{userId}`: Delete a specific user.
+      * Returns: HTTP 204 No Content on success.
+
+**Admin - Bookings (`/api/admin/bookings`)** (Requires ADMIN role)
+
+  * `GET /bookings`: Get a paginated list of all bookings.
+      * Supports pagination parameters (e.g., `?page=0&size=20&sort=createdAt,desc`).
+      * Returns: `Page<Booking>`.
+  * `GET /bookings/{bookingId}`: Get detailed information about a specific booking.
+      * Returns: `AdminBookingDetailDTO`.
+  * `DELETE /bookings/{bookingId}`: Cancel a specific booking (by admin).
+      * Returns: HTTP 204 No Content on success.
+
+**Admin - Attractions (`/api/admin/attractions`)** (Requires ADMIN or TRIP\_MANAGER role)
+
+  * `POST /attractions`: Create a new attraction.
+      * Body: `CreateAttractionRequestDTO`
+      * Returns: `AttractionAdminViewDTO` of the created attraction.
+  * `GET /attractions`: Get a paginated list of all attractions.
+      * Supports pagination parameters (e.g., `?page=0&size=10&sort=id,asc`).
+      * Returns: `Page<AttractionAdminViewDTO>`.
+  * `GET /attractions/{attractionId}`: Get details of a specific attraction.
+      * Returns: `AttractionAdminViewDTO`.
+  * `PUT /attractions/{attractionId}`: Update details of a specific attraction.
+      * Body: `UpdateAttractionRequestDTO`
+      * Returns: `AttractionAdminViewDTO` of the updated attraction.
+  * `PATCH /attractions/{attractionId}/status`: Update the active status of an attraction.
+      * Body: `{ "isActive": boolean }`
+      * Returns: `AttractionAdminViewDTO` of the updated attraction.
+  * `DELETE /attractions/{attractionId}`: Delete a specific attraction.
+      * Returns: HTTP 204 No Content on success.
+
+**Admin - Statistics & Trends (`/api/admin`)** (Requires ADMIN role)
+
+  * `GET /stats`: Get dashboard statistics (e.g., total users, bookings).
+      * Returns: `AdminStatsDTO`.
+  * `GET /trends/registrations`: Get data points for user registration trends.
+      * Returns: `List<TrendDataPointDTO>`.
+  * `GET /trends/bookings`: Get data points for booking trends.
+      * Returns: `List<TrendDataPointDTO>`.
+
+## Contributing
+
+Contributions are welcome\! If you'd like to contribute, please follow these steps:
+
+1.  Fork the repository.
+2.  Create a new branch (`git checkout -b feature/your-feature-name`).
+3.  Make your changes.
+4.  Commit your changes (`git commit -m 'Add some feature'`).
+5.  Push to the branch (`git push origin feature/your-feature-name`).
+6.  Open a Pull Request.
+
+Please ensure your code adheres to the existing style and includes tests where appropriate.
+
+## License
+
+This project is licensed under the MIT License - see the [https://www.google.com/search?q=LICENSE](LICENSE) file for details .
