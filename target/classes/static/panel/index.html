@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>後台管理系統</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="./style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-['Inter',_'Noto_Sans_TC',_sans-serif]">
+
+    <div id="notificationArea" class="fixed top-4 right-4 z-[1050] w-full max-w-xs sm:max-w-sm space-y-2">
+    </div>
+
+    <div id="loginPage" class="login-bg min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 md:p-12 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">後台管理系統登入</h2>
+            <form id="loginForm">
+                <div class="mb-6">
+                    <label for="username" class="block text-gray-700 text-sm font-bold mb-2">帳號 (Email)</label>
+                    <input type="email" id="username" name="username" value="" placeholder="請輸入 Email" class="input-field" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-700 text-sm font-bold mb-2">密碼</label>
+                    <input type="password" id="password" name="password" value="" placeholder="請輸入密碼" class="input-field mb-3" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" id="loginSubmitBtn" class="btn btn-primary w-full text-lg flex items-center justify-center">
+                        <span class="button-text">登入</span>
+                        <svg class="animate-spin h-5 w-5 text-white ml-2 hidden" id="loginSpinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+                 <p id="loginError" class="text-red-500 text-xs italic mt-4 text-center h-4"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminDashboard" class="flex h-screen bg-gray-100" style="display: none;">
+        <aside id="sidebar" class="w-64 bg-gray-800 text-gray-200 flex flex-col fixed inset-y-0 left-0 z-30 transform -translate-x-full transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0">
+            <div class="p-4 text-2xl font-semibold text-white border-b border-gray-700">管理選單</div>
+            <nav id="sidebarNav" class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="#dashboard" class="sidebar-link flex items-center px-4 py-2 rounded-md" data-role="ADMIN"><i class="fas fa-tachometer-alt mr-3 w-5 text-center"></i> <span>儀表板</span></a>
+                <a href="#attractions" class="sidebar-link flex items-center px-4 py-2 rounded-md" data-role="ADMIN TRIP_MANAGER"><i class="fas fa-map-marked-alt mr-3 w-5 text-center"></i> <span>行程管理</span></a>
+                <a href="#bookings" class="sidebar-link flex items-center px-4 py-2 rounded-md" data-role="ADMIN"><i class="fas fa-calendar-check mr-3 w-5 text-center"></i> <span>預訂管理</span></a>
+                <a href="#users" class="sidebar-link flex items-center px-4 py-2 rounded-md" data-role="ADMIN"><i class="fas fa-users-cog mr-3 w-5 text-center"></i> <span>帳號管理</span></a>
+            </nav>
+            <div class="p-4 border-t border-gray-700 mt-auto">
+                <button id="logoutButton" class="w-full btn btn-secondary flex items-center justify-center"><i class="fas fa-sign-out-alt mr-2"></i> 登出</button>
+            </div>
+        </aside>
+
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black opacity-50 z-20 hidden md:hidden"></div>
+
+        <div class="flex flex-col flex-1 overflow-hidden">
+            <header class="bg-white shadow-md p-4 flex justify-between items-center">
+                 <button id="sidebarToggle" class="text-gray-500 focus:outline-none focus:text-gray-700 mr-4 md:hidden">
+                     <i class="fas fa-bars text-xl"></i>
+                 </button>
+                 <h1 id="pageTitle" class="text-xl md:text-2xl font-semibold text-gray-800">儀表板</h1>
+                 <div class="w-6 md:hidden"></div>
+            </header>
+
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6">
+                <div id="dashboardContent" class="page-content">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">數據總覽</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6">
+                        <div class="bg-white p-4 md:p-6 rounded-lg shadow-md flex items-center">
+                            <div class="bg-blue-500 p-3 rounded-full mr-4 flex-shrink-0"> <i class="fas fa-users text-white text-xl w-6 h-6 flex items-center justify-center"></i> </div>
+                            <div>
+                                <p class="text-gray-500 text-sm">總用戶數</p>
+                                <p id="totalUsers" class="text-2xl font-bold text-gray-800">載入中...</p>
+                            </div>
+                        </div>
+                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md flex items-center">
+                             <div class="bg-green-500 p-3 rounded-full mr-4 flex-shrink-0"> <i class="fas fa-calendar-check text-white text-xl w-6 h-6 flex items-center justify-center"></i> </div>
+                             <div>
+                                 <p class="text-gray-500 text-sm">總預訂數</p>
+                                 <p id="totalBookings" class="text-2xl font-bold text-gray-800">載入中...</p>
+                             </div>
+                         </div>
+                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md flex items-center">
+                            <div class="bg-yellow-500 p-3 rounded-full mr-4 flex-shrink-0"> <i class="fas fa-dollar-sign text-white text-xl w-6 h-6 flex items-center justify-center"></i> </div>
+                            <div>
+                                <p class="text-gray-500 text-sm">總收入 (TWD)</p>
+                                <p id="totalRevenue" class="text-2xl font-bold text-gray-800">N/A</p> </div>
+                        </div>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">趨勢分析</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-4">每日預訂趨勢</h3>
+                            <div class="chart-container relative h-64 md:h-80"> <canvas id="bookingTrendChart"></canvas> </div>
+                            <p id="bookChartError" class="text-red-500 text-sm mt-2"></p>
+                        </div>
+                        <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                             <h3 class="text-lg font-semibold text-gray-700 mb-4">用戶角色分佈</h3>
+                             <div class="chart-container relative h-64 md:h-80"> <canvas id="userRoleChart"></canvas> </div>
+                             <p id="roleChartError" class="text-red-500 text-sm mt-2"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attractionsContent" class="page-content hidden">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                        <h2 class="text-xl font-semibold text-gray-700">行程管理</h2>
+                        <button id="showAddAttractionModalBtn" class="btn btn-primary w-full sm:w-auto"> <i class="fas fa-plus mr-2"></i> 新增行程 </button>
+                    </div>
+                    <div class="bg-white p-4 md:p-6 rounded-lg shadow-md overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名稱</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">分類</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">捷運站</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">啟用狀態</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attractionsTableBody" class="bg-white divide-y divide-gray-200">
+                                <tr> <td colspan="6" class="text-center py-4 text-gray-500">載入中...</td> </tr>
+                            </tbody>
+                        </table>
+                         <div id="attractionsPagination" class="mt-4 flex justify-center">
+                         </div>
+                    </div>
+                </div>
+
+                <div id="bookingsContent" class="page-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">所有用戶預訂行程</h2>
+                    <div class="bg-white p-4 md:p-6 rounded-lg shadow-md overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">預訂 ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用戶</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">行程</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">日期</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">時間</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">價格</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">狀態</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">建立時間</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingsTableBody" class="bg-white divide-y divide-gray-200">
+                                <tr> <td colspan="9" class="text-center py-4 text-gray-500">載入中...</td> </tr>
+                            </tbody>
+                        </table>
+                        </div>
+                </div>
+
+                <div id="usersContent" class="page-content hidden">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                        <h2 class="text-xl font-semibold text-gray-700">帳號管理</h2>
+                        <button id="showAddUserModalBtn" class="btn btn-primary w-full sm:w-auto"> <i class="fas fa-plus mr-2"></i> 新增用戶 </button>
+                    </div>
+                    <div class="bg-white p-4 md:p-6 rounded-lg shadow-md overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Email</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">註冊時間</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
+                                <tr> <td colspan="6" class="text-center py-4 text-gray-500">載入中...</td> </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="editUserModal" class="modal fixed inset-0 z-50 overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md sm:max-w-lg z-[51] mx-auto p-6 transform transition-all duration-300 ease-out scale-95 opacity-0">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">編輯用戶資料</h3>
+                <button id="closeEditModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId" name="editUserId">
+                 <p id="editError" class="text-red-500 text-sm mb-4 h-4"></p>
+                <div class="mb-4"> <label for="editUserName" class="block text-gray-700 text-sm font-bold mb-2">姓名</label> <input type="text" id="editUserName" name="editUserName" class="input-field" required> </div>
+                <div class="mb-4"> <label for="editUserEmail" class="block text-gray-700 text-sm font-bold mb-2">Email (帳號)</label> <input type="email" id="editUserEmail" name="editUserEmail" class="input-field" required> </div>
+                <div class="mb-6">
+                    <label for="editUserRole" class="block text-gray-700 text-sm font-bold mb-2">角色</label>
+                    <select id="editUserRole" name="editUserRole" class="input-field">
+                        <option value="ROLE_USER">一般用戶</option>
+                        <option value="ROLE_TRIP_MANAGER">行程管理員</option>
+                        <option value="ROLE_ADMIN">管理員</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3"> <button type="button" id="cancelEditBtn" class="btn btn-secondary">取消</button> <button type="submit" id="saveEditBtn" class="btn btn-primary">儲存變更</button> </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addUserModal" class="modal fixed inset-0 z-50 overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md sm:max-w-lg z-[51] mx-auto p-6 transform transition-all duration-300 ease-out scale-95 opacity-0">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">新增用戶</h3>
+                <button id="closeAddModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form id="addUserForm">
+                 <p id="addError" class="text-red-500 text-sm mb-4 h-4"></p>
+                <div class="mb-4"> <label for="addUserName" class="block text-gray-700 text-sm font-bold mb-2">姓名</label> <input type="text" id="addUserName" name="addUserName" placeholder="輸入姓名" class="input-field" required> </div>
+                <div class="mb-4"> <label for="addUserEmail" class="block text-gray-700 text-sm font-bold mb-2">Email (帳號)</label> <input type="email" id="addUserEmail" name="addUserEmail" placeholder="輸入 Email" class="input-field" required> </div>
+                 <div class="mb-4"> <label for="addUserPassword" class="block text-gray-700 text-sm font-bold mb-2">密碼</label> <input type="password" id="addUserPassword" name="addUserPassword" placeholder="輸入至少 6 位密碼" class="input-field" required minlength="6"> </div>
+                <div class="mb-6">
+                    <label for="addUserRole" class="block text-gray-700 text-sm font-bold mb-2">角色</label>
+                    <select id="addUserRole" name="addUserRole" class="input-field">
+                        <option value="ROLE_USER" selected>一般用戶</option>
+                        <option value="ROLE_TRIP_MANAGER">行程管理員</option>
+                        <option value="ROLE_ADMIN">管理員</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3"> <button type="button" id="cancelAddBtn" class="btn btn-secondary">取消</button> <button type="submit" id="saveAddBtn" class="btn btn-primary">確認新增</button> </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteConfirmModal" class="modal fixed inset-0 z-[60] overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-60"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-md z-[61] mx-auto p-6 transform transition-all duration-300 ease-out scale-95 opacity-0">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">確認刪除</h3>
+                <div class="text-sm text-gray-500 mb-4">
+                    您確定要刪除用戶 <strong id="deleteUserName" class="font-semibold"></strong> 嗎？此操作無法復原。
+                </div>
+                <input type="hidden" id="deleteUserId" name="deleteUserId">
+            </div>
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button type="button" id="confirmDeleteBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm">
+                    確認刪除
+                </button>
+                <button type="button" id="cancelDeleteBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteBookingConfirmModal" class="modal fixed inset-0 z-[60] overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-60"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-md z-[61] mx-auto p-6 transform transition-all duration-300 ease-out scale-95 opacity-0">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">確認刪除預訂</h3>
+                <div class="text-sm text-gray-500 mb-4">
+                    您確定要刪除預訂 ID <strong id="deleteBookingIdDisplay" class="font-semibold"></strong> 嗎？此操作無法復原。
+                </div>
+                <input type="hidden" id="deleteBookingId" name="deleteBookingId">
+            </div>
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button type="button" id="confirmDeleteBookingBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm">
+                    確認刪除
+                </button>
+                <button type="button" id="cancelDeleteBookingBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bookingDetailModal" class="modal fixed inset-0 z-50 overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md sm:max-w-2xl z-[51] mx-auto transform transition-all duration-300 ease-out scale-95 opacity-0 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-3 mb-5 sticky top-0 bg-white z-20 p-6 flex-shrink-0">
+                <h3 class="text-xl font-semibold text-gray-800">預訂詳細資訊</h3>
+                <button id="closeBookingDetailModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="bookingDetailContent" class="space-y-4 overflow-y-auto px-6 flex-grow">
+                <div id="bookingDetailLoading" class="text-center py-4">
+                   <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle> <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg>
+                   <p class="mt-2 text-gray-600">載入中...</p>
+                </div>
+                <p id="bookingDetailError" class="text-red-500 text-sm text-center py-4 hidden"></p>
+                <div id="bookingDetailData" class="hidden grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                    <div class="col-span-1 md:col-span-2 border-b pb-2 mb-2"> <h4 class="font-semibold text-lg text-gray-700">基本資訊</h4> </div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">預訂 ID:</strong> <span id="detailBookingId" class="text-gray-800 break-words"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">建立時間:</strong> <span id="detailCreatedAt" class="text-gray-800"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">預訂狀態:</strong> <span id="detailBookingStatus" class="text-gray-800 px-2 py-0.5 rounded text-xs font-medium"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">預訂價格:</strong> <span id="detailPrice" class="text-gray-800 font-semibold"></span> TWD</div>
+                    <div class="col-span-1 md:col-span-2 border-b pb-2 mb-2 mt-4"> <h4 class="font-semibold text-lg text-gray-700">顧客資訊</h4> </div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">姓名:</strong> <span id="detailCustomerName" class="text-gray-800"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">Email:</strong> <span id="detailCustomerEmail" class="text-gray-800 break-words"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">聯絡電話:</strong> <span id="detailContactPhone" class="text-gray-800"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">身分證號:</strong> <span id="detailCustomerIdNumber" class="text-gray-800"></span></div>
+                    <div class="col-span-1 md:col-span-2 border-b pb-2 mb-2 mt-4"> <h4 class="font-semibold text-lg text-gray-700">行程資訊</h4> </div>
+                    <div class="col-span-1 md:col-span-2"><strong class="text-gray-600 w-24 sm:w-28 inline-block align-top">名稱:</strong> <span id="detailAttractionName" class="text-gray-800"></span></div>
+                     <div class="col-span-1 md:col-span-2"><strong class="text-gray-600 w-24 sm:w-28 inline-block align-top">地址:</strong> <span id="detailAttractionAddress" class="text-gray-800"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">日期:</strong> <span id="detailBookingDate" class="text-gray-800"></span></div>
+                    <div><strong class="text-gray-600 w-24 sm:w-28 inline-block">時間:</strong> <span id="detailBookingTime" class="text-gray-800"></span></div>
+                    <div class="col-span-1 md:col-span-2"><strong class="text-gray-600 w-24 sm:w-28 inline-block align-top">圖片:</strong>
+                        <img id="detailAttractionImage" src="" alt="行程圖片" class="mt-1 rounded-md max-w-[200px] sm:max-w-xs h-auto max-h-60 shadow" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <span class="text-gray-500 text-xs hidden">無法載入圖片</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 border-t pt-4 sticky bottom-0 bg-white z-20 p-6 flex-shrink-0 mt-auto">
+                 <button type="button" id="cancelBookingDetailBtn" class="btn btn-secondary">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="attractionModal" class="modal fixed inset-0 z-50 overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-50"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md sm:max-w-2xl z-[51] mx-auto transform transition-all duration-300 ease-out scale-95 opacity-0 max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-3 mb-5 sticky top-0 bg-white z-20 p-6 flex-shrink-0">
+                <h3 id="attractionModalTitle" class="text-xl font-semibold text-gray-800">新增行程</h3>
+                <button id="closeAttractionModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div class="overflow-y-auto px-6 flex-grow">
+                <form id="attractionForm">
+                    <input type="hidden" id="attractionId" name="attractionId">
+                    <p id="attractionError" class="text-red-500 text-sm mb-4 h-4"></p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="sm:col-span-2">
+                            <label for="attractionName" class="block text-gray-700 text-sm font-bold mb-2">名稱 <span class="text-red-500">*</span></label>
+                            <input type="text" id="attractionName" name="attractionName" placeholder="輸入行程名稱" class="input-field" required>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="attractionDescription" class="block text-gray-700 text-sm font-bold mb-2">描述</label>
+                            <textarea id="attractionDescription" name="attractionDescription" placeholder="輸入行程描述" rows="3" class="input-field"></textarea>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="attractionAddress" class="block text-gray-700 text-sm font-bold mb-2">地址</label>
+                            <input type="text" id="attractionAddress" name="attractionAddress" placeholder="輸入行程地址" class="input-field">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="attractionImageUrl" class="block text-gray-700 text-sm font-bold mb-2">圖片 URL</label>
+                            <input type="text" id="attractionImageUrl" name="attractionImageUrl" placeholder="輸入圖片網址 (例如: /images/attraction.jpg)" class="input-field">
+                            <p class="text-xs text-gray-500 mt-1">請提供相對於網站根目錄的路徑或完整的 URL。</p>
+                        </div>
+                        <div>
+                            <label for="attractionMrt" class="block text-gray-700 text-sm font-bold mb-2">捷運站</label>
+                            <input type="text" id="attractionMrt" name="attractionMrt" placeholder="例如: 台北車站" class="input-field">
+                        </div>
+                        <div>
+                            <label for="attractionCategory" class="block text-gray-700 text-sm font-bold mb-2">分類</label>
+                            <input type="text" id="attractionCategory" name="attractionCategory" placeholder="例如: 文化古蹟" class="input-field">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">啟用狀態</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" id="attractionIsActiveTrue" name="attractionIsActive" value="true" class="form-radio h-4 w-4 text-indigo-600" checked>
+                                    <span class="ml-2 text-sm text-gray-700">啟用</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" id="attractionIsActiveFalse" name="attractionIsActive" value="false" class="form-radio h-4 w-4 text-indigo-600">
+                                    <span class="ml-2 text-sm text-gray-700">停用</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+             <div class="flex justify-end space-x-3 border-t pt-4 sticky bottom-0 bg-white z-20 p-6 flex-shrink-0 mt-auto">
+                 <button type="button" id="cancelAttractionBtn" class="btn btn-secondary">取消</button>
+                 <button type="submit" id="saveAttractionBtn" form="attractionForm" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteAttractionConfirmModal" class="modal fixed inset-0 z-[60] overflow-y-auto items-center justify-center p-4 hidden">
+        <div class="modal-overlay fixed inset-0 bg-black opacity-60"></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm sm:max-w-md z-[61] mx-auto p-6 transform transition-all duration-300 ease-out scale-95 opacity-0">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">確認刪除行程</h3>
+                <div class="text-sm text-gray-500 mb-4">
+                    您確定要刪除行程 <strong id="deleteAttractionName" class="font-semibold"></strong> 嗎？此操作無法復原。
+                </div>
+                <input type="hidden" id="deleteAttractionId" name="deleteAttractionId">
+            </div>
+            <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button type="button" id="confirmDeleteAttractionBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm">
+                    確認刪除
+                </button>
+                <button type="button" id="cancelDeleteAttractionBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

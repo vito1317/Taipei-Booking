@@ -1,0 +1,1 @@
+java -jar target/taipei-booking-0.0.1-SNAPSHOT.jar

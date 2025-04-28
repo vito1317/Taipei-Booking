@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台北漫遊行程規劃</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script async src="https://pay.google.com/gp/p/js/pay.js"></script>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">台北漫遊</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <button id="myBookingsBtn" class="btn btn-link nav-link btn-my-bookings hidden">我的預訂</button>
+                    </li>
+                    <li class="nav-item">
+                        <button id="loginLink" class="btn btn-link nav-link btn-login">登入</button>
+                    </li>
+                    <li class="nav-item">
+                        <img id="userAvatar" src="https://placehold.co/40x40/E8E8E8/BDBDBD?text=User" alt="用戶頭像" class="user-avatar hidden">
+                    </li>
+                    <li class="nav-item">
+                         <button id="logoutBtn" class="btn btn-link nav-link btn-logout hidden">登出</button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div data-aos="fade-in" data-aos-duration="1000">
+             <h1><span id="typed-output"></span></h1>
+        </div>
+    </section>
+
+    <div class="container">
+        <section class="search-container" data-aos="fade-up">
+            <form class="row g-3 align-items-center">
+                <div class="col-md">
+                    <input type="text" class="form-control" id="searchInput" placeholder="搜尋景點名稱，例如：台北 101">
+                </div>
+                <div class="col-md-auto">
+                    <button type="button" id="searchBtn" class="btn btn-primary w-100">搜尋行程</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="trip-list-section">
+            <h2 class="trip-section-title" data-aos="fade-up">熱門推薦行程</h2>
+            <div class="horizontal-scroll-wrapper" id="tripListContainer">
+                </div>
+        </section>
+    </div>
+
+    <footer class="mt-5">
+        <div class="container">
+            <p>&copy; 2025 台北漫遊. 版權所有.</p>
+            <p>
+                <a href="#">隱私權政策</a> | <a href="#">服務條款</a> | <a href="#">聯絡我們</a>
+            </p>
+        </div>
+    </footer>
+
+    <button id="backToTopBtn" title="回到頂部" class="btn btn-lg">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <div class="modal fade" id="generalAlertModal" tabindex="-1" aria-labelledby="generalAlertModalLabel" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered">
+           <div class="modal-content">
+             <div class="modal-header">
+               <h5 class="modal-title" id="generalAlertModalLabel">提示</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+             </div>
+             <div class="modal-body" id="generalAlertBody">
+               </div>
+             <div class="modal-footer">
+               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+             </div>
+           </div>
+         </div>
+       </div>
+
+     <div class="modal fade" id="bookingSuccessModal" tabindex="-1" aria-labelledby="bookingSuccessModalLabel" aria-hidden="true">
+       <div class="modal-dialog modal-dialog-centered">
+         <div class="modal-content">
+           <div class="modal-header">
+             <h5 class="modal-title" id="bookingSuccessModalLabel">預訂成功</h5>
+             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+           </div>
+           <div class="modal-body">
+             <p class="text-center fs-5"><i class="fas fa-check-circle text-success me-2"></i>您的行程已成功預訂並付款！</p> </div>
+           <div class="modal-footer">
+             <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="viewMyBookingsAfterSuccess">查看我的預訂</button>
+             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+           </div>
+         </div>
+       </div>
+     </div>
+
+     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="loginModalLabel">會員登入</h5>
+                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                 </div>
+                 <div class="modal-body">
+                     <div id="loginErrorPlaceholder"></div>
+                     <form id="loginForm">
+                         <div class="mb-3">
+                             <label for="username" class="form-label">帳號 (Email)</label>
+                             <input type="email" class="form-control" id="username" placeholder="請輸入您的電子郵件" required>
+                         </div>
+                         <div class="mb-3">
+                             <label for="password" class="form-label">密碼</label>
+                             <input type="password" class="form-control" id="password" placeholder="請輸入您的密碼" required>
+                         </div>
+                          <button type="submit" id="loginSubmitBtn" class="btn btn-primary w-100 mb-2">登入</button>
+                          <p class="text-center mb-0">還沒有帳號？ <button type="button" class="btn btn-link p-0" id="showRegisterBtn">立即註冊</button></p>
+                     </form>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+     <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="registerModalLabel">會員註冊</h5>
+                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                 </div>
+                 <div class="modal-body">
+                      <div id="registerErrorPlaceholder"></div>
+                      <form id="registerForm">
+                          <div class="mb-3">
+                              <label for="registerName" class="form-label">姓名</label>
+                              <input type="text" class="form-control" id="registerName" placeholder="請輸入您的姓名" required>
+                          </div>
+                          <div class="mb-3">
+                              <label for="registerEmail" class="form-label">電子郵件 (帳號)</label>
+                              <input type="email" class="form-control" id="registerEmail" placeholder="請輸入有效的電子郵件" required>
+                          </div>
+                          <div class="mb-3">
+                               <label for="registerPassword" class="form-label">設定密碼</label>
+                              <input type="password" class="form-control" id="registerPassword" placeholder="請輸入您想設定的密碼 (至少6位)" required minlength="6"> </div>
+                           <button type="submit" id="registerSubmitBtn" class="btn btn-success w-100 mb-2">完成註冊</button>
+                           <p class="text-center mb-0">已經有帳號了？ <button type="button" class="btn btn-link p-0" id="showLoginBtn">返回登入</button></p>
+                      </form>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+    <div class="modal fade" id="personalInfoModal" tabindex="-1" aria-labelledby="personalInfoModalLabel" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered">
+             <div class="modal-content">
+                 <div class="modal-header">
+                     <h5 class="modal-title" id="personalInfoModalLabel">預訂資料確認</h5>
+                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                 </div>
+                 <div class="modal-body">
+                     <div id="bookingErrorPlaceholder"></div>
+                     <div class="mb-3 p-3 bg-light rounded">
+                         <h6>您預訂的行程：</h6>
+                         <img id="confirmTripImage" src="https://placehold.co/100x75/E8E8E8/BDBDBD?text=Trip" alt="行程圖片" class="img-thumbnail float-end ms-3 mb-2" style="width: 100px;">
+                         <p class="mb-1"><strong>行程名稱：</strong> <span id="confirmTripName"></span></p>
+                         <p class="mb-1"><strong>預訂日期：</strong> <span id="confirmBookingDate"></span></p>
+                         <p class="mb-1"><strong>時間：</strong> <span id="confirmBookingTime"></span></p>
+                         <p class="mb-0"><strong>費用：</strong> 新台幣 <span id="confirmBookingPrice"></span> 元</p>
+                         <input type="hidden" id="currentBookingId"> </div>
+                     <hr>
+                     <form id="bookingForm">
+                         <h6>請填寫聯絡人資訊：</h6>
+                         <div class="mb-3">
+                              <label for="name" class="form-label">姓名</label>
+                              <input type="text" class="form-control" id="name" placeholder="您的姓名" required>
+                         </div>
+                         <div class="mb-3">
+                              <label for="customerIdNumber" class="form-label">身分證字號</label>
+                              <input type="text" class="form-control" id="customerIdNumber" placeholder="請輸入您的身分證字號" required maxlength="10">
+                              <div class="form-text">格式範例：A123456789</div>
+                         </div>
+                         <div class="mb-3">
+                              <label for="phone" class="form-label">聯絡電話</label>
+                             <input type="tel" class="form-control" id="phone" placeholder="請輸入您的電話號碼" required>
+                         </div>
+                         <p class="text-muted small mt-3">請再次確認行程日期與個人資料無誤。</p>
+                         <button type="submit" id="submitBookingBtn" class="btn btn-primary w-100" data-step="create">建立訂單以進行付款</button>
+                     </form>
+                     <div id="googlePayButtonContainer" class="mt-3 text-center hidden">
+                         <hr>
+                         <p class="text-muted small">訂單已建立，請點擊下方按鈕完成付款：</p>
+                         </div>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+    <div class="modal fade" id="myBookingsModal" tabindex="-1" aria-labelledby="myBookingsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="myBookingsModalLabel">我的預訂紀錄</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="myBookingsMsgPlaceholder" class="text-center mb-3"></div>
+            <div id="myBookingsList" class="list-group">
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="cancelBookingConfirmModal" tabindex="-1" aria-labelledby="cancelBookingConfirmModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="cancelBookingConfirmModalLabel">確認取消預訂</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>您確定要取消預訂 <strong id="cancelBookingTripName"></strong> (編號: <span id="cancelBookingIdDisplay"></span>) 嗎？</p>
+            <p class="text-danger small">此操作無法復原。</p>
+            <input type="hidden" id="cancelBookingId">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelCancelBookingBtn">返回</button>
+            <button type="button" class="btn btn-danger" id="confirmCancelBookingBtn">確認取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

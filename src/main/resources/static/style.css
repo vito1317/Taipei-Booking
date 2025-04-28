@@ -1,0 +1,359 @@
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    background: linear-gradient(to right, #007bff, #0056b3);
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+    padding: 0.8rem 1rem;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: #fff !important;
+}
+
+.nav-link, .btn-login, .btn-logout, .btn-my-bookings {
+    color: #fff !important;
+    font-weight: 500;
+    margin-left: 10px;
+    transition: opacity 0.3s ease;
+    background: none;
+    border: none;
+    padding: 0.375rem 0.75rem;
+    vertical-align: middle;
+}
+
+.nav-link:hover, .btn-login:hover, .btn-logout:hover, .btn-my-bookings:hover {
+    opacity: 0.8;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-left: 15px;
+    border: 2px solid #fff;
+}
+
+.hero-section {
+    background: url('image/9.jpg') no-repeat center center;
+    background-size: cover;
+    height: 40vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    margin-bottom: 2rem;
+}
+
+.hero-section h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    min-height: 1.2em;
+}
+
+.typed-cursor {
+    opacity: 1;
+    animation: typedjsBlink 0.7s infinite;
+    -webkit-animation: typedjsBlink 0.7s infinite;
+    font-size: 2.5rem;
+    color: white;
+}
+@keyframes typedjsBlink {
+    50% { opacity: 0.0; }
+}
+@-webkit-keyframes typedjsBlink {
+    0% { opacity: 1; }
+    50% { opacity: 0.0; }
+    100% { opacity: 1; }
+}
+
+.search-container {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.1);
+}
+.search-container .form-control {
+    height: calc(1.5em + 1rem + 2px);
+}
+ .search-container .btn-primary {
+     padding: 0.5rem 1.5rem;
+ }
+
+.trip-section-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.horizontal-scroll-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding-bottom: 15px; /* 留出空間給滾動條 */
+    margin-left: -15px; /* 補償容器 padding */
+    margin-right: -15px; /* 補償容器 padding */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #e2e8f0 transparent; /* Firefox: thumb color track color */
+}
+
+/* Webkit (Chrome, Safari) Scrollbar Styling */
+.horizontal-scroll-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+.horizontal-scroll-wrapper::-webkit-scrollbar-track {
+    background: transparent; /* 預設隱藏軌道 */
+    border-radius: 10px;
+}
+.horizontal-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: #e2e8f0; /* 預設淺灰色滑塊 */
+    border-radius: 10px;
+    border: 2px solid transparent; /* 可選：增加邊框使其更細 */
+    background-clip: padding-box; /* 重要：讓背景色只在 padding box 內 */
+    transition: background-color 0.2s ease-in-out; /* 平滑過渡 */
+}
+.horizontal-scroll-wrapper:hover::-webkit-scrollbar-thumb {
+    background-color: #a0aec0; /* 滑鼠懸停時變深灰色 */
+}
+/* 可選：滑鼠按住滑塊時的樣式 */
+.horizontal-scroll-wrapper::-webkit-scrollbar-thumb:active {
+    background-color: #718096;
+}
+
+
+.trip-card {
+    display: inline-block;
+    width: 280px;
+    margin: 0 10px;
+    vertical-align: top;
+    white-space: normal;
+    background-color: #fff;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0; /* 由 AOS 控制初始透明度 */
+}
+
+.trip-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,.15);
+}
+
+.trip-card img {
+    height: 180px;
+    object-fit: cover;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.trip-card .card-body {
+    padding: 1rem;
+}
+
+.trip-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trip-card .date-picker {
+    margin-bottom: 0.8rem;
+    font-size: 0.9rem;
+    padding: 0.3rem 0.5rem;
+}
+
+
+.trip-card .book-btn {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+ .trip-card .book-btn:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+ }
+
+
+.modal-header {
+    background-color: #007bff;
+    color: white;
+}
+.modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+.modal-body label {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    display: block;
+}
+.modal-footer .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+ .modal-footer .btn-link {
+    text-decoration: none;
+ }
+
+
+footer {
+    background-color: #343a40;
+    color: #ccc;
+    padding: 2rem 0;
+    margin-top: 3rem;
+    text-align: center;
+}
+footer a {
+    color: #fff;
+    text-decoration: none;
+}
+footer a:hover {
+    text-decoration: underline;
+}
+
+
+#backToTopBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    z-index: 1030;
+    background-color: #007bff;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+#backToTopBtn i {
+    font-size: 1.5rem;
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+#backToTopBtn:hover {
+    background-color: #0056b3;
+}
+
+
+.hidden {
+    display: none !important;
+}
+
+
+[data-aos="fade-up"] {
+  transform: translate3d(0, 30px, 0);
+}
+
+
+#myBookingsModal .modal-body {
+    min-height: 200px;
+}
+
+#myBookingsList .booking-item {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    background-color: #fff;
+}
+
+#myBookingsList .booking-item h5 {
+    color: #007bff;
+    font-weight: 600;
+}
+
+#myBookingsList .booking-item p {
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+#myBookingsList .booking-item small {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.delete-booking-btn {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.delete-booking-btn i {
+    pointer-events: none;
+}
+
+
+.spinner-border-sm {
+     width: 1rem;
+     height: 1rem;
+     border-width: 0.2em;
+}
+
+
+
+@media (max-width: 767.98px) {
+    .hero-section h1, .typed-cursor {
+        font-size: 2rem;
+    }
+    .trip-card {
+        width: 240px;
+    }
+    .navbar-nav {
+        text-align: center;
+    }
+
+    .nav-link, .btn-login, .btn-logout, .btn-my-bookings {
+        margin-left: 0;
+        margin-bottom: 5px;
+    }
+    .user-avatar {
+        margin: 10px auto;
+    }
+
+    #myBookingsList .booking-item .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    #myBookingsList .booking-item .delete-booking-btn {
+        margin-top: 0.75rem;
+        align-self: flex-end;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .trip-card {
+        width: 90%;
+        margin-left: 5%;
+        margin-right: 5%;
+    }
+     .horizontal-scroll-wrapper {
+        margin-left: 0;
+        margin-right: 0;
+     }
+     .search-container .row > * {
+         margin-bottom: 0.5rem;
+     }
+     .search-container .btn-primary {
+         width: 100%;
+     }
+}
