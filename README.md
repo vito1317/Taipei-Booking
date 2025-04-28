@@ -242,4 +242,4 @@ Please ensure your code adheres to the existing style and includes tests where a
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details (if you add one).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
