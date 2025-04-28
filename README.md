@@ -6,9 +6,10 @@ This is a Taipei attraction booking system developed using Java Spring Boot. It 
 
 * [Features](#features)
 * [Tech Stack](#tech-stack)
+* [Data Models](#data-models)
 * [Prerequisites](#prerequisites)
 * [Getting Started](#getting-started)
-* [API Endpoints (Optional)](#api-endpoints-optional)
+* [API Endpoints](#api-endpoints)
 * [Contributing](#contributing)
 * [License](#license)
 
@@ -18,7 +19,7 @@ This is a Taipei attraction booking system developed using Java Spring Boot. It 
 * **User Authentication:** Secure user registration and login using JWT (JSON Web Tokens).
 * **Trip Booking:** Logged-in users can create new bookings by selecting an attraction, date, time, and price.
 * **Booking Management:** Users can view their upcoming (unpaid/unconfirmed) booking details.
-* **Admin Panel (Optional):** An administrative interface for managing attractions, users, and potentially viewing booking statistics or trends (if implemented).
+* **Admin Panel (Optional):** An administrative interface for managing attractions, users, bookings, and viewing statistics/trends.
 
 ## Tech Stack
 
@@ -37,6 +38,47 @@ This is a Taipei attraction booking system developed using Java Spring Boot. It 
 * **Other Libraries:**
     * `jjwt` (for JWT handling)
     * (Add any other significant libraries from your `pom.xml`)
+
+## Data Models
+
+This project uses the following core data models (JPA Entities):
+
+* **`User` (`User.java`)**: Represents a user account.
+    * `id` (Long): Primary key.
+    * `username` (String): User's email address (used for login, unique).
+    * `password` (String): Hashed password (ignored in JSON responses).
+    * `name` (String): User's display name.
+    * `role` (String): User role (e.g., `ROLE_USER`, `ROLE_ADMIN`, `ROLE_TRIP_MANAGER`). Defaults to `ROLE_USER`.
+    * `createdAt` (LocalDateTime): Timestamp of account creation.
+    * `bookings` (List<Booking>): Association with the user's bookings (lazy-loaded, ignored in JSON).
+
+* **`Attraction` (`Attraction.java`)**: Represents a tourist attraction.
+    * `id` (Long): Primary key.
+    * `name` (String): Name of the attraction.
+    * `description` (String): Detailed description (TEXT).
+    * `address` (String): Address of the attraction.
+    * `imageUrl` (String): URL of the attraction's image.
+    * `mrt` (String): Nearby MRT station.
+    * `category` (String): Category of the attraction.
+    * `isActive` (Boolean): Whether the attraction is currently active/bookable. Defaults to `true`.
+    * `createdAt` (LocalDateTime): Timestamp of creation.
+    * `updatedAt` (LocalDateTime): Timestamp of the last update.
+
+* **`Booking` (`Booking.java`)**: Represents a booking made by a user for an attraction.
+    * `id` (Long): Primary key.
+    * `user` (User): Association with the user who made the booking (lazy-loaded, ignored in JSON).
+    * `customerName` (String): Name of the customer making the booking (might differ from user's name).
+    * `attractionId` (Long): Foreign key referencing the booked `Attraction`.
+    * `attractionName` (String): Name of the booked attraction (denormalized).
+    * `attractionAddress` (String): Address of the booked attraction (denormalized).
+    * `attractionImage` (String): Image URL of the booked attraction (denormalized).
+    * `date` (Date): Date of the booking.
+    * `time` (String): Time slot of the booking (e.g., "morning", "afternoon").
+    * `price` (Integer): Price of the booking.
+    * `customerIdNumber` (String): Customer's ID number (masked in `toString`).
+    * `contactPhone` (String): Customer's contact phone number.
+    * `status` (String): Status of the booking (e.g., "UNPAID", "PAID", "CANCELLED").
+    * `createdAt` (LocalDateTime): Timestamp of booking creation.
 
 ## Prerequisites
 
@@ -93,21 +135,97 @@ Follow these steps to get the project running locally:
 6.  **Access the application:**
     Open your web browser and navigate to `http://localhost:8080` (or the port configured in `application.properties`).
 
-## API Endpoints (Optional)
+## API Endpoints
 
-Here are some of the main API endpoints provided by the application:
+Here are the main API endpoints provided by the application:
 
-* `GET /api/attractions`: Get a list of attractions (supports pagination and keyword search).
-* `GET /api/attractions/{attractionId}`: Get details for a specific attraction.
-* `POST /api/user`: Register a new user.
-* `PUT /api/user/auth`: Log in a user and receive a JWT token.
-* `GET /api/user/auth`: Get the currently logged-in user's information (requires JWT).
-* `POST /api/booking`: Create a new booking (requires JWT).
-* `GET /api/booking`: Get the current user's upcoming booking (requires JWT).
-* `DELETE /api/booking`: Delete the current user's upcoming booking (requires JWT).
-* **(Admin Endpoints)**: Document admin endpoints if applicable (e.g., `GET /api/admin/users`, `POST /api/admin/attractions`).
+**Authentication (`/api/user`)**
 
-*(Note: This is a sample list based on typical REST conventions and your controller names. Review your `*Controller.java` files for the exact paths and HTTP methods.)*
+* `POST /api/user/register`: Register a new user.
+    * Body: `RegisterRequest` (name, email, password)
+* `POST /api/user/login`: Log in a user.
+    * Body: `LoginRequest` (email, password)
+    * Returns: JWT token and user role.
+* `GET /api/user/auth`: Get the currently authenticated user's information.
+    * Requires: Valid JWT in Authorization header.
+    * Returns: User details (id, name, email, role) or null if not authenticated.
+
+**Attractions (`/api`)**
+
+* `GET /api/attractions`: Get a list of active attractions for the frontend.
+    * Returns: List of `AttractionBasicDTO`.
+
+**Bookings (`/api`)**
+
+* `POST /api/booking`: Create a new booking.
+    * Requires: Valid JWT.
+    * Body: `BookingRequest` (attractionId, date, time, price)
+    * Returns: `{ "ok": true, "bookingId": ... }`
+* `GET /api/booking`: Get the current user's bookings.
+    * Requires: Valid JWT.
+    * Returns: List of `Booking` objects for the user.
+* `DELETE /api/booking/{bookingId}`: Delete a specific booking for the current user.
+    * Requires: Valid JWT.
+    * Allowed only for bookings in certain states (e.g., UNPAID).
+    * Returns: `{ "ok": true }` on success.
+* `POST /api/booking/{bookingId}/pay`: Mark a booking as paid (simulated payment).
+    * Requires: Valid JWT.
+    * Allowed only for bookings in the UNPAID state.
+    * Returns: `{ "ok": true, "message": "...", "bookingId": ..., "newStatus": "PAID" }`
+
+**Admin - Users (`/api/admin/users`)** (Requires ADMIN role)
+
+* `POST /users`: Create a new user (by admin).
+    * Body: `AdminCreateUserRequestDTO`
+    * Returns: `UserAdminViewDTO` of the created user.
+* `GET /users`: Get a paginated list of all users.
+    * Supports pagination parameters (e.g., `?page=0&size=10&sort=id,asc`).
+    * Returns: `Page<UserAdminViewDTO>`.
+* `GET /users/{userId}`: Get details of a specific user.
+    * Returns: `UserAdminViewDTO`.
+* `PUT /users/{userId}`: Update a specific user's details (by admin).
+    * Body: `AdminUpdateUserRequestDTO`
+    * Returns: `UserAdminViewDTO` of the updated user.
+* `DELETE /users/{userId}`: Delete a specific user.
+    * Returns: HTTP 204 No Content on success.
+
+**Admin - Bookings (`/api/admin/bookings`)** (Requires ADMIN role)
+
+* `GET /bookings`: Get a paginated list of all bookings.
+    * Supports pagination parameters (e.g., `?page=0&size=20&sort=createdAt,desc`).
+    * Returns: `Page<Booking>`.
+* `GET /bookings/{bookingId}`: Get detailed information about a specific booking.
+    * Returns: `AdminBookingDetailDTO`.
+* `DELETE /bookings/{bookingId}`: Cancel a specific booking (by admin).
+    * Returns: HTTP 204 No Content on success.
+
+**Admin - Attractions (`/api/admin/attractions`)** (Requires ADMIN or TRIP_MANAGER role)
+
+* `POST /attractions`: Create a new attraction.
+    * Body: `CreateAttractionRequestDTO`
+    * Returns: `AttractionAdminViewDTO` of the created attraction.
+* `GET /attractions`: Get a paginated list of all attractions.
+    * Supports pagination parameters (e.g., `?page=0&size=10&sort=id,asc`).
+    * Returns: `Page<AttractionAdminViewDTO>`.
+* `GET /attractions/{attractionId}`: Get details of a specific attraction.
+    * Returns: `AttractionAdminViewDTO`.
+* `PUT /attractions/{attractionId}`: Update details of a specific attraction.
+    * Body: `UpdateAttractionRequestDTO`
+    * Returns: `AttractionAdminViewDTO` of the updated attraction.
+* `PATCH /attractions/{attractionId}/status`: Update the active status of an attraction.
+    * Body: `{ "isActive": boolean }`
+    * Returns: `AttractionAdminViewDTO` of the updated attraction.
+* `DELETE /attractions/{attractionId}`: Delete a specific attraction.
+    * Returns: HTTP 204 No Content on success.
+
+**Admin - Statistics & Trends (`/api/admin`)** (Requires ADMIN role)
+
+* `GET /stats`: Get dashboard statistics (e.g., total users, bookings).
+    * Returns: `AdminStatsDTO`.
+* `GET /trends/registrations`: Get data points for user registration trends.
+    * Returns: `List<TrendDataPointDTO>`.
+* `GET /trends/bookings`: Get data points for booking trends.
+    * Returns: `List<TrendDataPointDTO>`.
 
 ## Contributing
 
@@ -124,4 +242,4 @@ Please ensure your code adheres to the existing style and includes tests where a
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details (if you add one).
