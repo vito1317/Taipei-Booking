@@ -4,15 +4,17 @@ This is a Taipei attraction booking system developed using Java Spring Boot. It 
 
 ## Table of Contents
 
-* [Features](#features)
-* [Tech Stack](#tech-stack)
-* [Data Models](#data-models)
-* [Database Schema & Sample Data](#database-schema--sample-data)
-* [Prerequisites](#prerequisites)
-* [Getting Started](#getting-started)
-* [API Endpoints](#api-endpoints)
-* [Contributing](#contributing)
-* [License](#license)
+- [Taipei Booking](#taipei-booking)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+  - [Data Models](#data-models)
+  - [Database Schema \& Sample Data](#database-schema--sample-data)
+  - [Prerequisites](#prerequisites)
+  - [Getting Started](#getting-started)
+  - [API Endpoints](#api-endpoints)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Features
 
@@ -175,7 +177,7 @@ Follow these steps to get the project running locally:
 1.  **Clone the repository:**
 
     ```bash
-    git clone [https://github.com/your-username/taipei-booking.git](https://github.com/your-username/taipei-booking.git) # Replace with your actual repo URL
+    git clone https://github.com/vito1317/taipei-booking.git # Replace with your actual repo URL
     cd taipei-booking
     ```
 
