@@ -1,43 +1,47 @@
 package com.taipeibooking.dto;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import java.util.Date;
+import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class BookingRequest {
-
-    @NotNull(message = "景點 ID 不得為空")
+    @NotNull(message = "景點ID不能為空")
     private Long attractionId;
 
-    @NotNull(message = "預訂日期不得為空")
-    private Date date;
+    @NotNull(message = "日期不能為空")
+    @FutureOrPresent(message = "預訂日期必須是今天或未來")
+    private LocalDate date;
 
-    @NotBlank(message = "預訂時間不得為空")
+    @NotBlank(message = "時間不能為空")
     private String time;
 
-    @NotNull(message = "價格不得為空")
-    private Integer price;
+    @NotNull(message = "價格不能為空")
+    @Positive(message = "價格必須為正數")
+    private BigDecimal price;
 
-
-    private String attractionName;
-    private String attractionAddress;
-    private String attractionImage;
-
-
-    @NotBlank(message = "聯絡姓名不得為空")
+    @NotBlank(message = "聯絡人姓名不能為空")
     private String contactName;
 
-    @NotBlank(message = "聯絡電話不得為空")
+    @NotBlank(message = "聯絡人電話不能為空")
     private String contactPhone;
-
-
-    @NotBlank(message = "身分證字號不得為空")
-    @Size(min = 10, max = 10, message = "身分證字號格式應為 10 碼")
+    
     private String customerIdNumber;
 
+    public BookingRequest() {
+    }
 
-
+    public BookingRequest(Long attractionId, LocalDate date, String time, BigDecimal price, String contactName, String contactPhone, String customerIdNumber) {
+        this.attractionId = attractionId;
+        this.date = date;
+        this.time = time;
+        this.price = price;
+        this.contactName = contactName;
+        this.contactPhone = contactPhone;
+        this.customerIdNumber = customerIdNumber;
+    }
 
     public Long getAttractionId() {
         return attractionId;
@@ -47,11 +51,11 @@ public class BookingRequest {
         this.attractionId = attractionId;
     }
 
-    public Date getDate() {
+    public LocalDate getDate() {
         return date;
     }
 
-    public void setDate(Date date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 
@@ -63,38 +67,13 @@ public class BookingRequest {
         this.time = time;
     }
 
-    public Integer getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Integer price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
-
-    public String getAttractionName() {
-        return attractionName;
-    }
-
-    public void setAttractionName(String attractionName) {
-        this.attractionName = attractionName;
-    }
-
-    public String getAttractionAddress() {
-        return attractionAddress;
-    }
-
-    public void setAttractionAddress(String attractionAddress) {
-        this.attractionAddress = attractionAddress;
-    }
-
-    public String getAttractionImage() {
-        return attractionImage;
-    }
-
-    public void setAttractionImage(String attractionImage) {
-        this.attractionImage = attractionImage;
-    }
-
 
     public String getContactName() {
         return contactName;
@@ -104,7 +83,6 @@ public class BookingRequest {
         this.contactName = contactName;
     }
 
-
     public String getContactPhone() {
         return contactPhone;
     }
@@ -112,7 +90,6 @@ public class BookingRequest {
     public void setContactPhone(String contactPhone) {
         this.contactPhone = contactPhone;
     }
-
 
     public String getCustomerIdNumber() {
         return customerIdNumber;

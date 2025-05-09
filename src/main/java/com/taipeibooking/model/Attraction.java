@@ -1,9 +1,8 @@
 package com.taipeibooking.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "attractions")
@@ -13,35 +12,48 @@ public class Attraction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "景點名稱不可為空")
     @Column(nullable = false)
     private String name;
 
-    @Lob
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column
     private String address;
+    private Double lat;
+    private Double lng;
+    private String transport;
+    private String mrt;
+    private String category;
+    private String district;
 
-    @Column(name = "image_url", length = 512)
+    @Column(nullable = false)
+    private boolean isActive = true;
+
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
-    @Column(length = 100)
-    private String mrt;
 
-    @Column(length = 100)
-    private String category;
+    @OneToMany(mappedBy = "attraction", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Booking> bookings = new ArrayList<>();
 
-    @NotNull(message = "啟用狀態不可為空")
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP", insertable = false, updatable = false)
-    private LocalDateTime createdAt;
+    public Attraction() {
+    }
 
-    @Column(name = "updated_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP", insertable = false, updatable = false)
-    private LocalDateTime updatedAt;
+    public Attraction(String name, String description, String address, Double lat, Double lng, String transport, String mrt, String category, String district, boolean isActive, String imageUrl) {
+        this.name = name;
+        this.description = description;
+        this.address = address;
+        this.lat = lat;
+        this.lng = lng;
+        this.transport = transport;
+        this.mrt = mrt;
+        this.category = category;
+        this.district = district;
+        this.isActive = isActive;
+        this.imageUrl = imageUrl;
+    }
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -51,23 +63,25 @@ public class Attraction {
     public void setDescription(String description) { this.description = description; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public Double getLat() { return lat; }
+    public void setLat(Double lat) { this.lat = lat; }
+    public Double getLng() { return lng; }
+    public void setLng(Double lng) { this.lng = lng; }
+    public String getTransport() { return transport; }
+    public void setTransport(String transport) { this.transport = transport; }
     public String getMrt() { return mrt; }
     public void setMrt(String mrt) { this.mrt = mrt; }
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean active) { isActive = active; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public String getDistrict() { return district; }
+    public void setDistrict(String district) { this.district = district; }
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
 
-    @Override
-    public String toString() {
-        return "Attraction{" +
-               "id=" + id +
-               ", name='" + name + '\'' +
-               ", isActive=" + isActive +
-               '}';
-    }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+
+    public List<Booking> getBookings() { return bookings; }
+    public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
 }

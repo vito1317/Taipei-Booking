@@ -51,7 +51,7 @@ This project uses the following core data models (JPA Entities):
     * `username` (String): User's email address (used for login, unique).
     * `password` (String): Hashed password (ignored in JSON responses).
     * `name` (String): User's display name.
-    * `role` (String): User role (e.g., `ROLE_USER`, `ROLE_ADMIN`, `ROLE_TRIP_MANAGER`). Defaults to `ROLE_USER`.
+    * `role` (String): User role (e.g., `USER`, `ADMIN`, `TRIP_MANAGER`). Defaults to `USER`.
     * `createdAt` (LocalDateTime): Timestamp of account creation.
     * `bookings` (List<Booking>): Association with the user's bookings (lazy-loaded, ignored in JSON).
 
@@ -135,7 +135,7 @@ INSERT INTO attractions (name, image_url, is_active) VALUES
 --     username VARCHAR(100) NOT NULL UNIQUE,
 --     password VARCHAR(255) NOT NULL,
 --     name VARCHAR(50) NOT NULL,
---     role VARCHAR(20) DEFAULT 'ROLE_USER' NOT NULL,
+--     role VARCHAR(20) DEFAULT 'USER' NOT NULL,
 --     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

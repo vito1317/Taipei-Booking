@@ -40,6 +40,9 @@ $(document).ready(function() {
     const $logoutBtn = $('#logoutBtn');
     const $userAvatar = $('#userAvatar');
     const $myBookingsBtn = $('#myBookingsBtn');
+    const $districtSelect = $('#districtSelect');
+    const $searchInput = $('#searchInput');
+    const $searchBtn = $('#searchBtn');
 
     const loginModalEl = document.getElementById('loginModal');
     const loginModal = loginModalEl ? new bootstrap.Modal(loginModalEl) : null;
@@ -55,6 +58,8 @@ $(document).ready(function() {
     const generalAlertModal = generalAlertModalEl ? new bootstrap.Modal(generalAlertModalEl) : null;
     const cancelBookingConfirmModalEl = document.getElementById('cancelBookingConfirmModal');
     const cancelBookingConfirmModal = cancelBookingConfirmModalEl ? new bootstrap.Modal(cancelBookingConfirmModalEl) : null;
+    const attractionDetailModalEl = document.getElementById('attractionDetailModal');
+    const attractionDetailModal = attractionDetailModalEl ? new bootstrap.Modal(attractionDetailModalEl) : null;
 
     const $generalAlertBody = $('#generalAlertBody');
     const $generalAlertModalLabel = $('#generalAlertModalLabel');
@@ -65,46 +70,48 @@ $(document).ready(function() {
     const $myBookingsListContainer = $('#myBookingsList');
     const $googlePayButtonContainer = $('#googlePayButtonContainer');
     const $submitBookingBtn = $('#submitBookingBtn');
+    const $attractionDetailBody = $('#attractionDetailBody');
 
-    let currentBookingData = {
-        tripName: null,
-        bookingDate: null,
-        bookingTime: null,
-        bookingPrice: null,
-        tripImage: null,
-        attractionId: null
-    };
+    let currentBookingData = { tripName: null, bookingDate: null, bookingTime: null, bookingPrice: null, tripImage: null, attractionId: null };
     let currentPendingBookingId = null;
     let userData = null;
     let googlePayClient = null;
     let lastFocusedElement = null;
-    let allTripsData = [];
+    let currentApiPage = 0;
+    let isLoadingTrips = false;
+    let hasMoreTrips = true;
 
     const API_BASE_URL = 'http://localhost:8080/api';
     const ATTRACTIONS_URL = `${API_BASE_URL}/attractions`;
+    const ATTRACTION_DETAIL_URL = (id) => `${API_BASE_URL}/attractions/${id}`;
+    const DISTRICTS_URL = `${API_BASE_URL}/districts`;
     const LOGIN_URL = `${API_BASE_URL}/user/login`;
     const REGISTER_URL = `${API_BASE_URL}/user/register`;
     const USER_AUTH_URL = `${API_BASE_URL}/user/auth`;
     const BOOKING_URL = `${API_BASE_URL}/booking`;
-    const BOOKING_PAY_URL = (bookingId) => `${BOOKING_URL}/${bookingId}/pay`;
+    const BOOKINGS_URL = `${API_BASE_URL}/bookings`;
+    const BOOKING_PAY_URL = (bookingId) => `${API_BASE_URL}/booking/${bookingId}/pay`;
+    const BOOKING_DELETE_URL = (bookingId) => `${BOOKING_URL}/${bookingId}`;
 
+
+    const GOOGLE_PAY_BASE_CARD_PAYMENT_METHOD = {
+        type: 'CARD',
+        parameters: {
+            allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+            allowedCardNetworks: ["MASTERCARD", "VISA"]
+        }
+    };
     const GOOGLE_PAY_BASE_CONFIG = {
         apiVersion: 2,
         apiVersionMinor: 0,
-        allowedPaymentMethods: [{
-            type: 'CARD',
-            parameters: {
-                allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-                allowedCardNetworks: ["MASTERCARD", "VISA"]
-            },
-            tokenizationSpecification: {
-                type: 'PAYMENT_GATEWAY',
-                parameters: {
-                    'gateway': 'example',
-                    'gatewayMerchantId': 'exampleGatewayMerchantId'
-                }
-            }
-        }]
+        allowedPaymentMethods: [GOOGLE_PAY_BASE_CARD_PAYMENT_METHOD]
+    };
+    const GOOGLE_PAY_TOKENIZATION_SPECIFICATION = {
+        type: 'PAYMENT_GATEWAY',
+        parameters: {
+            'gateway': 'example',
+            'gatewayMerchantId': 'exampleGatewayMerchantId'
+        }
     };
     const GOOGLE_PAY_MERCHANT_INFO = {
         merchantName: '台北漫遊'
@@ -114,10 +121,11 @@ $(document).ready(function() {
         if (generalAlertModal && $generalAlertBody.length && $generalAlertModalLabel.length) {
             $generalAlertModalLabel.text(title);
             $generalAlertBody.html(message);
-            $(generalAlertModalEl).css('z-index', parseInt($(myBookingsModalEl).css('z-index') || 1050) + 10);
+            const activeModalZIndex = Math.max(...$('.modal.show').map(function() { return parseInt($(this).css('z-index')) || 0; }));
+            $(generalAlertModalEl).css('z-index', activeModalZIndex + 10);
             generalAlertModal.show();
         } else {
-            alert(message);
+            alert(`${title}: ${message.replace(/<br\s*\/?>/gi, '\n')}`);
         }
     }
 
@@ -131,14 +139,17 @@ $(document).ready(function() {
     }
 
     function showMessage($placeholder, message, isError = false) {
+        if (!$placeholder || $placeholder.length === 0) return;
         const alertClass = isError ? 'alert-danger' : 'alert-success';
         $placeholder.html(`<div class="alert ${alertClass} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`).hide().fadeIn(300);
     }
 
     function clearMessage($placeholder) {
-        $placeholder.fadeOut(200, function() {
-            $(this).empty().show();
-        });
+        if ($placeholder && $placeholder.length > 0) {
+            $placeholder.fadeOut(200, function() {
+                $(this).empty().show();
+            });
+        }
     }
 
     function getToken() {
@@ -152,6 +163,44 @@ $(document).ready(function() {
     function removeToken() {
         localStorage.removeItem('authToken');
     }
+
+    function storeFocus() {
+        lastFocusedElement = document.activeElement;
+    }
+
+    function restoreFocus() {
+        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+            if ($('.modal.show').length === 0) {
+                setTimeout(() => {
+                    try {
+                        lastFocusedElement.focus();
+                    } catch (e) { }
+                    lastFocusedElement = null;
+                }, 0);
+            } else {
+                lastFocusedElement = null;
+            }
+        }
+    }
+
+    function setupModalFocusManagement(modalElement) {
+        if (!modalElement) return;
+        $(modalElement).on('shown.bs.modal', function () {
+            $(this).find('input, select, button, [href], textarea, [tabindex]:not([tabindex="-1"])').first().trigger('focus');
+        });
+        $(modalElement).on('show.bs.modal', storeFocus);
+        $(modalElement).on('hidden.bs.modal', restoreFocus);
+        $(modalElement).on('hide.bs.modal', function(event) {
+            if (modalElement.contains(document.activeElement)) {
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    try {
+                        document.activeElement.blur();
+                    } catch (e) { }
+                }
+            }
+        });
+    }
+    [loginModalEl, registerModalEl, personalInfoModalEl, bookingSuccessModalEl, myBookingsModalEl, generalAlertModalEl, cancelBookingConfirmModalEl, attractionDetailModalEl].forEach(setupModalFocusManagement);
 
     function updateLoginStateUI(isLoggedIn) {
         if (isLoggedIn) {
@@ -172,111 +221,274 @@ $(document).ready(function() {
         const token = getToken();
         if (!token) {
             updateLoginStateUI(false);
-            return;
+            return Promise.resolve(false);
         }
-        $.ajax({
+        return $.ajax({
             url: USER_AUTH_URL,
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            success: function(response) {
-                if (response && response.data) {
-                    userData = response.data;
-                    updateLoginStateUI(true);
-                } else {
-                    removeToken();
-                    updateLoginStateUI(false);
-                }
-            },
-            error: function(jqXHR) {
+            headers: { 'Authorization': `Bearer ${token}` },
+            dataType: 'json'
+        }).done(function(response) {
+            if (response && response.data && response.data.id && response.data.name && response.data.email) {
+                userData = response.data;
+                updateLoginStateUI(true);
+                return true;
+            } else {
                 removeToken();
                 updateLoginStateUI(false);
+                return false;
             }
+        }).fail(function() {
+            removeToken();
+            updateLoginStateUI(false);
+            return false;
         });
     }
 
-    async function loadTrips() {
-        $tripListContainer.html('<div class="text-center p-5"><span class="spinner-border text-primary" role="status"><span class="visually-hidden">載入中...</span></span></div>');
+    async function loadDistricts() {
         try {
             const response = await $.ajax({
-                url: ATTRACTIONS_URL,
+                url: DISTRICTS_URL,
                 method: 'GET',
                 dataType: 'json'
             });
             if (response && response.data && Array.isArray(response.data)) {
-                allTripsData = response.data;
-                renderTripCards(allTripsData, $('#searchInput').val());
-            } else {
-                throw new Error('無法解析行程資料');
+                $districtSelect.find('option:not(:first)').remove();
+                response.data.forEach(district => {
+                    $districtSelect.append($('<option>', {
+                        value: district,
+                        text: district
+                    }));
+                });
             }
         } catch (error) {
-            $tripListContainer.html('<p class="text-center text-danger p-5">無法載入行程列表，請稍後再試。</p>');
+            $districtSelect.prop('disabled', true).append($('<option>', { text: '無法載入區域' }));
         }
     }
 
-    function renderTripCards(tripsToRender, filter = '') {
-        $tripListContainer.empty();
-        let cardsHtml = '';
-        const lowerCaseFilter = filter.toLowerCase().trim();
-        let foundTrips = false;
+    async function loadTrips(page = 0, keyword = '', district = '', append = false) {
+        if (isLoadingTrips && append) return;
+        isLoadingTrips = true;
 
-        tripsToRender.forEach((trip, index) => {
-            const lowerCaseName = trip.name.toLowerCase();
-            if (lowerCaseFilter === '' || lowerCaseName.includes(lowerCaseFilter)) {
-                foundTrips = true;
+        if (!append) {
+            $tripListContainer.html('<div class="text-center p-5"><span class="spinner-border text-primary" role="status"><span class="visually-hidden">載入中...</span></span></div>');
+            hasMoreTrips = true;
+            currentApiPage = 0;
+        } else {
+             $tripListContainer.append('<div class="text-center p-3 loading-more"><span class="spinner-border spinner-border-sm text-secondary" role="status"><span class="visually-hidden">載入更多...</span></span></div>');
+        }
 
-                const imageUrl = trip.imageUrl || 'https://placehold.co/280x180/cccccc/969696?text=No+Image';
-                const placeholderOnError = `https://placehold.co/280x180/cccccc/969696?text=Image+Error`;
-                const timeOptions = `
-                    <option value="morning" data-price="2000">上半天 (09:00 - 12:00) - NT$2000</option>
-                    <option value="afternoon" data-price="2500">下半天 (13:00 - 17:00) - NT$2500</option>
-                `;
-                cardsHtml += `
-                <div class="trip-card card" data-aos="fade-up" data-aos-delay="${index * 50}"
-                     data-trip-name="${trip.name}"
-                     data-trip-image="${imageUrl}"
-                     data-attraction-id="${trip.id}">
-                    <img src="${imageUrl}" class="card-img-top" alt="${trip.name}" onerror="this.onerror=null;this.src='${placeholderOnError}';">
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title location-name">${trip.name}</h5>
-                        <div class="mb-2">
-                            <label for="date-${trip.id}" class="form-label form-label-sm visually-hidden">日期</label>
-                            <input type="date" id="date-${trip.id}" class="form-control form-control-sm date-picker mb-1" required>
-                        </div>
-                        <div class="mb-3"> <label for="time-${trip.id}" class="form-label form-label-sm visually-hidden">時間</label>
-                             <select id="time-${trip.id}" class="form-select form-select-sm time-picker" required>
-                                 ${timeOptions}
-                             </select>
-                        </div>
-                        <button class="btn btn-danger btn-sm book-btn w-100 mt-auto">立即預訂</button> </div>
-                </div>`;
+        let url = `${ATTRACTIONS_URL}?page=${page}&size=12`;
+        if (keyword) {
+            url += `&keyword=${encodeURIComponent(keyword)}`;
+        }
+        if (district) {
+            url += `&district=${encodeURIComponent(district)}`;
+        }
+
+        try {
+            const response = await $.ajax({
+                url: url,
+                method: 'GET',
+                dataType: 'json'
+            });
+
+            $('.loading-more').remove();
+
+            if (response && response.data && Array.isArray(response.data)) {
+                renderTripCards(response.data, append);
+                currentApiPage = response.nextPage !== null ? response.nextPage : null;
+                hasMoreTrips = response.nextPage !== null;
+                if (response.data.length === 0 && !append) {
+                     $tripListContainer.html('<p class="text-center text-muted p-5">找不到符合條件的行程。</p>');
+                }
+            } else {
+                 if (!append) {
+                     $tripListContainer.html('<p class="text-center text-muted p-5">找不到符合條件的行程。</p>');
+                 }
+                 hasMoreTrips = false;
             }
-        });
-
-        if (!foundTrips) {
-            cardsHtml = '<p class="text-center text-muted p-5">找不到符合條件的行程。</p>';
+        } catch (error) {
+             $('.loading-more').remove();
+             if (!append) {
+                 $tripListContainer.html('<p class="text-center text-danger p-5">無法載入行程列表，請稍後再試。</p>');
+             }
+             hasMoreTrips = false;
+        } finally {
+            isLoadingTrips = false;
         }
-
-        $tripListContainer.html(cardsHtml);
-
-        const today = new Date().toISOString().split('T')[0];
-        $tripListContainer.find('.date-picker').attr('min', today);
-
-        AOS.refresh();
     }
 
-    function initializeGooglePay() {
-        if (!window.google || !window.google.payments || !window.google.payments.api) {
-            setTimeout(initializeGooglePay, 500);
+    function renderTripCards(tripsToRender, append = false) {
+        if (!append) {
+            $tripListContainer.empty();
+        }
+
+        if (!tripsToRender || tripsToRender.length === 0) {
+            if (!append) {
+                 $tripListContainer.html('<p class="text-center text-muted p-5">找不到符合條件的行程。</p>');
+            }
             return;
         }
+
+        let cardsHtml = '';
+        tripsToRender.forEach((trip, index) => {
+            const imageUrl = trip.imageUrl || 'https://placehold.co/280x180/cccccc/969696?text=No+Image';
+            const placeholderOnError = `https://placehold.co/280x180/cccccc/969696?text=Image+Error`;
+            const timeOptions = `
+                <option value="morning" data-price="2000">上半天 (09:00 - 12:00) - NT$2000</option>
+                <option value="afternoon" data-price="2500">下半天 (13:00 - 17:00) - NT$2500</option>
+            `;
+            cardsHtml += `
+            <div class="trip-card card" data-aos="fade-up" data-aos-delay="${append ? 0 : index * 50}"
+                 data-trip-name="${escapeHtml(trip.name)}"
+                 data-trip-image="${escapeHtml(imageUrl)}"
+                 data-attraction-id="${trip.id}">
+                <img src="${escapeHtml(imageUrl)}" class="card-img-top attraction-detail-trigger" alt="${escapeHtml(trip.name)}" onerror="this.onerror=null;this.src='${placeholderOnError}';">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title location-name attraction-detail-trigger">${escapeHtml(trip.name)}</h5>
+                    <p class="card-text small text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i>${escapeHtml(trip.district || '未知區域')} | <i class="fas fa-subway me-1"></i>${escapeHtml(trip.mrt || '無捷運資訊')}</p>
+                    <div class="mb-2">
+                        <label for="date-${trip.id}" class="form-label form-label-sm visually-hidden">日期</label>
+                        <input type="date" id="date-${trip.id}" class="form-control form-control-sm date-picker mb-1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="time-${trip.id}" class="form-label form-label-sm visually-hidden">時間</label>
+                         <select id="time-${trip.id}" class="form-select form-select-sm time-picker" required>
+                             ${timeOptions}
+                         </select>
+                    </div>
+                    <button class="btn btn-danger btn-sm book-btn w-100 mt-auto">立即預訂</button>
+                </div>
+            </div>`;
+        });
+
+        $tripListContainer.append(cardsHtml);
+
+        const today = new Date().toISOString().split('T')[0];
+        $tripListContainer.find('.date-picker:not([min])').attr('min', today);
+
+        if (!append) {
+            AOS.refresh();
+        }
+    }
+
+    function escapeHtml(unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe)
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
+    async function showAttractionDetails(attractionId) {
+        if (!attractionDetailModal) return;
+        $attractionDetailBody.html('<div class="text-center p-5"><span class="spinner-border text-primary" role="status"><span class="visually-hidden">載入中...</span></span></div>');
+        attractionDetailModal.show();
+
         try {
-            googlePayClient = new google.payments.api.PaymentsClient({
-                environment: 'TEST'
+            const response = await $.ajax({
+                url: ATTRACTION_DETAIL_URL(attractionId),
+                method: 'GET',
+                dataType: 'json'
             });
+
+            if (response && response.data) {
+                renderAttractionDetailModal(response.data);
+            } else {
+                throw new Error('無法解析景點詳細資料');
+            }
         } catch (error) {
-            googlePayClient = null;
+            let errorMsg = '無法載入景點詳細資訊，請稍後再試。';
+             if (error.responseJSON && error.responseJSON.message) {
+                 errorMsg = error.responseJSON.message;
+             } else if (error.status === 404) {
+                 errorMsg = '找不到指定的景點資訊。';
+             }
+            $attractionDetailBody.html(`<p class="text-center text-danger p-5">${errorMsg}</p>`);
+        }
+    }
+
+    function renderAttractionDetailModal(detail) {
+        let imagesHtml = '';
+        const placeholderOnError = `https://placehold.co/800x300/cccccc/969696?text=Image+Error`;
+        const noImageHtml = `<div class="single-image-container"><img src="https://placehold.co/800x300/cccccc/969696?text=No+Image" alt="${escapeHtml(detail.name)}"></div>`;
+        let numImages = 0;
+
+        if (detail.images && Array.isArray(detail.images) && detail.images.length > 0) {
+            detail.images.forEach(imgUrl => {
+                let resolvedImgUrl = escapeHtml(imgUrl);
+                if (!resolvedImgUrl.toLowerCase().startsWith('http')) {
+                    resolvedImgUrl = (API_BASE_URL.startsWith('http') ? '' : window.location.origin) + (resolvedImgUrl.startsWith('/') ? resolvedImgUrl : '/' + resolvedImgUrl);
+                }
+                imagesHtml += `<div><img src="${resolvedImgUrl}" alt="${escapeHtml(detail.name)}" onerror="this.onerror=null;this.src='${placeholderOnError}';"></div>`;
+            });
+            numImages = detail.images.length;
+        } else if (detail.imageUrl) {
+             let resolvedImgUrl = escapeHtml(detail.imageUrl);
+             if (!resolvedImgUrl.toLowerCase().startsWith('http')) {
+                 resolvedImgUrl = (API_BASE_URL.startsWith('http') ? '' : window.location.origin) + (resolvedImgUrl.startsWith('/') ? resolvedImgUrl : './' + resolvedImgUrl);
+             }
+             imagesHtml += `<div class="single-image-container"><img src="${resolvedImgUrl}" alt="${escapeHtml(detail.name)}" onerror="this.onerror=null;this.src='${placeholderOnError}';"></div>`;
+             numImages = 1;
+        } else {
+            imagesHtml = noImageHtml;
+            numImages = 1;
+        }
+        if (!imagesHtml) {
+            imagesHtml = noImageHtml;
+            numImages = 1;
+        }
+
+        const detailHtml = `
+            <h5 class="mb-3">${escapeHtml(detail.name)}</h5>
+            <div class="attraction-images-carousel mb-4">
+                ${imagesHtml}
+            </div>
+            <h6><i class="fas fa-info-circle me-2 text-primary"></i>景點介紹</h6>
+            <p>${escapeHtml(detail.description || '無詳細介紹')}</p>
+            <h6><i class="fas fa-map-marked-alt me-2 text-primary"></i>地址與區域</h6>
+            <p><strong>行政區:</strong> ${escapeHtml(detail.district || '未分類')}</p>
+            <p><strong>地址:</strong> ${escapeHtml(detail.address || '無地址資訊')}</p>
+            <h6><i class="fas fa-subway me-2 text-primary"></i>交通資訊</h6>
+            <p><strong>捷運站:</strong> ${escapeHtml(detail.mrt || '無')}</p>
+            <p><strong>交通方式:</strong> ${escapeHtml(detail.transport || '無詳細交通方式')}</p>
+            <h6><i class="fas fa-tags me-2 text-primary"></i>分類</h6>
+            <p>${escapeHtml(detail.category || '未分類')}</p>
+        `;
+        $attractionDetailBody.html(detailHtml);
+
+        const $carousel = $attractionDetailBody.find('.attraction-images-carousel');
+        if ($carousel.length && $.fn.slick) {
+            if ($carousel.hasClass('slick-initialized')) {
+                $carousel.slick('unslick');
+            }
+            if (numImages > 1) {
+                $carousel.slick({
+                    dots: true,
+                    infinite: true,
+                    speed: 500,
+                    fade: true,
+                    cssEase: 'linear',
+                    autoplay: true,
+                    autoplaySpeed: 3000,
+                    arrows: true
+                });
+            } else {
+            }
+        }
+    }
+
+
+    function initializeGooglePay() {
+        try {
+            if (window.google && window.google.payments && window.google.payments.api) {
+                googlePayClient = new google.payments.api.PaymentsClient({ environment: 'TEST' });
+                checkGooglePayReady();
+            }
+        } catch (error) {
         }
     }
 
@@ -284,242 +496,211 @@ $(document).ready(function() {
         if (!googlePayClient) {
             return Promise.resolve(false);
         }
-        const isReadyToPayRequest = { ...GOOGLE_PAY_BASE_CONFIG
-        };
-        return googlePayClient.isReadyToPay(isReadyToPayRequest).then(response => response.result).catch(err => false);
+        const isReadyToPayRequest = Object.assign({}, GOOGLE_PAY_BASE_CONFIG);
+        return googlePayClient.isReadyToPay(isReadyToPayRequest)
+            .then(response => {
+                return response.result;
+            })
+            .catch(err => {
+                return false;
+            });
     }
 
     function addGooglePayButton(price, currency = 'TWD', $container = $googlePayButtonContainer) {
         if (!googlePayClient) {
-            $container.html('<p class="text-danger small">無法載入 Google Pay 付款按鈕。</p>').removeClass('hidden');
+            $container.html('<p class="text-danger small">無法載入 Google Pay 按鈕。</p>').removeClass('hidden');
             return;
         }
+
         checkGooglePayReady().then(isReady => {
             if (isReady) {
-                try {
-                    const button = googlePayClient.createButton({
-                        onClick: () => onGooglePayButtonClicked(price, currency),
-                        buttonColor: 'default',
-                        buttonType: 'pay',
-                        buttonSizeMode: 'fill',
-                    });
-                    $container.empty().append(button).removeClass('hidden');
-                } catch (error) {
-                    $container.html('<p class="text-danger small">建立 Google Pay 按鈕時發生錯誤。</p>').removeClass('hidden');
-                }
+                const button = googlePayClient.createButton({
+                    onClick: () => onGooglePayButtonClicked(price, currency),
+                    allowedPaymentMethods: [GOOGLE_PAY_BASE_CARD_PAYMENT_METHOD]
+                });
+                $container.empty().append(button).removeClass('hidden');
             } else {
-                $container.html('<p class="text-muted small">您的裝置或瀏覽器目前不支援 Google Pay 付款。</p>').removeClass('hidden');
+                $container.html('<p class="text-muted small">此裝置不支援 Google Pay。</p>').removeClass('hidden');
             }
-        }).catch(err => {
-            $container.html('<p class="text-danger small">檢查 Google Pay 狀態時發生錯誤。</p>').removeClass('hidden');
         });
     }
 
     function onGooglePayButtonClicked(price, currency) {
-        if (!currentPendingBookingId) {
-            const $errorPlaceholder = $(personalInfoModalEl).hasClass('show') ? $bookingErrorPlaceholder : $myBookingsMsgPlaceholder;
-            showMessage($errorPlaceholder, '無法處理付款，缺少訂單資訊，請重新操作。', true);
-            return;
-        }
         if (!googlePayClient) {
-            const $errorPlaceholder = $(personalInfoModalEl).hasClass('show') ? $bookingErrorPlaceholder : $myBookingsMsgPlaceholder;
-            showMessage($errorPlaceholder, 'Google Pay 初始化失敗，無法付款。', true);
+            showGeneralAlert("Google Pay 初始化失敗，無法進行支付。", "錯誤");
             return;
         }
-        const paymentDataRequest = { ...GOOGLE_PAY_BASE_CONFIG
-        };
-        paymentDataRequest.merchantInfo = GOOGLE_PAY_MERCHANT_INFO;
+        if (currentPendingBookingId === null) {
+            showGeneralAlert("沒有有效的預訂可供支付。", "錯誤");
+            return;
+        }
+
+        const paymentDataRequest = Object.assign({}, GOOGLE_PAY_BASE_CONFIG);
+        paymentDataRequest.allowedPaymentMethods[0].tokenizationSpecification = GOOGLE_PAY_TOKENIZATION_SPECIFICATION;
         paymentDataRequest.transactionInfo = {
             totalPriceStatus: 'FINAL',
             totalPrice: String(price),
             currencyCode: currency,
             countryCode: 'TW'
         };
-        googlePayClient.loadPaymentData(paymentDataRequest).then(paymentData => {
-            const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
-            clearMessage($bookingErrorPlaceholder);
-            clearMessage($myBookingsMsgPlaceholder);
-            const $gpayContainer = $(personalInfoModalEl).hasClass('show') ? $googlePayButtonContainer : $(`#myBookingsList .booking-item[data-booking-id="${currentPendingBookingId}"] .gpay-placeholder`);
-            if ($gpayContainer.length) {
-                $gpayContainer.html('<p class="text-info small"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 付款處理中...</p>');
-            }
-            markBookingAsPaid(currentPendingBookingId);
-        }).catch(err => {
-            let errorMsg = `付款失敗`;
-            if (err.statusCode === 'CANCELED') {
-                errorMsg = '您已取消付款。';
-            } else if (err.statusMessage) {
-                errorMsg += `：${err.statusMessage}`;
-            }
-            if (err.statusCode) {
-                errorMsg += ` (代碼: ${err.statusCode})`;
-            }
-            const $errorPlaceholder = $(personalInfoModalEl).hasClass('show') ? $bookingErrorPlaceholder : $myBookingsMsgPlaceholder;
-            showMessage($errorPlaceholder, errorMsg, true);
-            const $gpayContainer = $(personalInfoModalEl).hasClass('show') ? $googlePayButtonContainer : $(`#myBookingsList .booking-item[data-booking-id="${currentPendingBookingId}"] .gpay-placeholder`);
-            if ($gpayContainer.length) {
-                addGooglePayButton(price, currency, $gpayContainer);
-                const $bookingItem = $gpayContainer.closest('.booking-item');
-                $bookingItem.find('.pay-booking-btn').removeClass('hidden');
-                $bookingItem.find('.delete-booking-btn').removeClass('hidden');
-            }
-        });
+        paymentDataRequest.merchantInfo = GOOGLE_PAY_MERCHANT_INFO;
+
+        googlePayClient.loadPaymentData(paymentDataRequest)
+            .then(paymentData => {
+                const paymentToken = paymentData.paymentMethodData.tokenizationData.token;
+                processPaymentOnServer(currentPendingBookingId, paymentToken);
+
+            })
+            .catch(err => {
+                let errorMsg = "Google Pay 支付失敗。";
+                if (err.statusCode === 'CANCELED') {
+                    errorMsg = "您已取消 Google Pay 支付。";
+                } else if (err.statusCode) {
+                    errorMsg = `Google Pay 錯誤 (${err.statusCode})，請稍後再試。`;
+                }
+                if (personalInfoModal && $(personalInfoModalEl).hasClass('show')) {
+                    showMessage($bookingErrorPlaceholder, errorMsg, true);
+                } else if (myBookingsModal && $(myBookingsModalEl).hasClass('show')) {
+                    showMessage($myBookingsMsgPlaceholder, errorMsg, true);
+                    const $bookingItem = $myBookingsListContainer.find(`.booking-item[data-booking-id="${currentPendingBookingId}"]`);
+                    $bookingItem.find('.gpay-placeholder').empty().addClass('hidden');
+                    $bookingItem.find('.pay-booking-btn, .delete-booking-btn').removeClass('hidden');
+                } else {
+                     showGeneralAlert(errorMsg, "支付錯誤");
+                }
+                currentPendingBookingId = null;
+            });
     }
 
-    function markBookingAsPaid(bookingId) {
+    function processPaymentOnServer(bookingId, paymentNonce) {
         const token = getToken();
         if (!token) {
-            const $errorPlaceholder = $(personalInfoModalEl).hasClass('show') ? $bookingErrorPlaceholder : $myBookingsMsgPlaceholder;
-            showMessage($errorPlaceholder, '您的登入已逾時，無法完成付款，請重新登入。', true);
-            if (personalInfoModal) personalInfoModal.hide();
-            if (myBookingsModal) myBookingsModal.hide();
-            if (loginModal) loginModal.show();
-            return;
+             showGeneralAlert('您的登入已逾時，無法完成付款，請重新登入。', '錯誤');
+             if (personalInfoModal && $(personalInfoModalEl).hasClass('show')) { personalInfoModal.hide(); }
+             if (myBookingsModal && $(myBookingsModalEl).hasClass('show')) { myBookingsModal.hide(); }
+             if (loginModal) { clearMessage($loginErrorPlaceholder); showMessage($loginErrorPlaceholder, '請重新登入', true); loginModal.show(); }
+             return;
         }
-        const $gpayContainer = $(personalInfoModalEl).hasClass('show') ? $googlePayButtonContainer : $(`#myBookingsList .booking-item[data-booking-id="${bookingId}"] .gpay-placeholder`);
-        const isPaymentFromMyBookings = myBookingsModal && $(myBookingsModalEl).hasClass('show');
+
+        const payload = {
+            prime: paymentNonce,
+            order: {
+                booking_id: bookingId,
+                price: currentBookingData.bookingPrice,
+                trip: {
+                    attraction: {
+                        id: currentBookingData.attractionId,
+                        name: currentBookingData.tripName,
+                        address: "",
+                        image: currentBookingData.tripImage
+                    },
+                    date: currentBookingData.bookingDate,
+                    time: currentBookingData.bookingTime
+                },
+                contact: {
+                    name: $('#name').val(),
+                    phone: $('#phone').val(),
+                    email: userData ? userData.email : ""
+                }
+            }
+        };
+
         $.ajax({
             url: BOOKING_PAY_URL(bookingId),
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             contentType: 'application/json',
+            data: JSON.stringify(payload),
             dataType: 'json',
             beforeSend: function() {
-                if ($gpayContainer.length) {
-                    $gpayContainer.html('<p class="text-info small"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 更新訂單狀態...</p>');
+                if (personalInfoModal && $(personalInfoModalEl).hasClass('show')) {
+                    showMessage($bookingErrorPlaceholder, '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 處理付款中...', false);
+                } else if (myBookingsModal && $(myBookingsModalEl).hasClass('show')) {
+                     showMessage($myBookingsMsgPlaceholder, '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 處理付款中...', false);
                 }
             },
             success: function(response) {
-                if (response && response.ok) {
-                    if (personalInfoModal && $(personalInfoModalEl).hasClass('show')) {
-                        personalInfoModal.hide();
-                        if (bookingSuccessModal) bookingSuccessModal.show();
-                    } else if (isPaymentFromMyBookings) {
-                        $myBookingsBtn.trigger('click');
-                        showSuccessToast('訂單 ' + bookingId + ' 付款成功！');
-                    }
-                    currentPendingBookingId = null;
-                } else {
-                    const errorMsg = (response && response.message) ? response.message : '更新訂單狀態失敗，後端回應異常。';
-                    const $errorPlaceholder = $(personalInfoModalEl).hasClass('show') ? $bookingErrorPlaceholder : $myBookingsMsgPlaceholder;
-                    showMessage($errorPlaceholder, errorMsg, true);
-                    const price = currentBookingData.bookingPrice;
-                    if (price !== null && $gpayContainer.length) {
-                        addGooglePayButton(price, 'TWD', $gpayContainer);
-                        const $bookingItem = $gpayContainer.closest('.booking-item');
-                        $bookingItem.find('.pay-booking-btn').removeClass('hidden');
-                        $bookingItem.find('.delete-booking-btn').removeClass('hidden');
-                    }
+                const isPaymentFromMyBookings = myBookingsModal && $(myBookingsModalEl).hasClass('show');
+                if (personalInfoModal && $(personalInfoModalEl).hasClass('show')) {
+                    personalInfoModal.hide();
+                    if (bookingSuccessModal) bookingSuccessModal.show();
+                } else if (isPaymentFromMyBookings) {
+                    $myBookingsBtn.trigger('click');
+                    showSuccessToast(`訂單 ${bookingId} 付款成功！`);
                 }
+                currentPendingBookingId = null;
             },
             error: function(jqXHR) {
-                let errorMsg = '完成付款失敗，無法更新訂單狀態。';
+                let errorMsg = "後端處理支付失敗，請聯繫客服。";
                 if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                     errorMsg = jqXHR.responseJSON.message;
+                } else if (jqXHR.status === 400) {
+                    errorMsg = "付款請求無效或訂單狀態錯誤。";
                 } else if (jqXHR.status === 401 || jqXHR.status === 403) {
-                    errorMsg = '您的登入已逾時或無權限，無法完成付款。';
-                    removeToken();
-                    updateLoginStateUI(false);
-                    if (personalInfoModal) personalInfoModal.hide();
-                    if (myBookingsModal) myBookingsModal.hide();
-                    if (loginModal) loginModal.show();
+                     errorMsg = '您的登入已逾時或無權限，請重新登入。';
+                     removeToken(); updateLoginStateUI(false);
                 } else if (jqXHR.status === 404) {
-                    errorMsg = '找不到對應的訂單，無法完成付款。';
-                } else if (jqXHR.status === 409) {
-                    errorMsg = '訂單狀態不符，可能已付款或已取消。';
-                } else if (jqXHR.status === 500) {
-                    errorMsg = '伺服器內部錯誤，無法更新訂單狀態。';
-                } else if (jqXHR.status === 0) {
-                    errorMsg = '無法連線至伺服器。';
+                     errorMsg = '找不到指定的預訂。';
+                 } else if (jqXHR.status === 0) {
+                     errorMsg = '無法連線至伺服器，請檢查網路連線。';
+                 } else {
+                     errorMsg = `處理付款時發生錯誤 (${jqXHR.status})。`;
+                 }
+
+                if (personalInfoModal && $(personalInfoModalEl).hasClass('show')) {
+                    showMessage($bookingErrorPlaceholder, errorMsg, true);
+                     $('#bookingForm').removeClass('hidden');
+                     $submitBookingBtn.removeClass('hidden').prop('disabled', false).text('建立訂單以進行付款');
+                     $googlePayButtonContainer.addClass('hidden').empty();
+                } else if (myBookingsModal && $(myBookingsModalEl).hasClass('show')) {
+                    showMessage($myBookingsMsgPlaceholder, errorMsg, true);
+                    const $bookingItem = $myBookingsListContainer.find(`.booking-item[data-booking-id="${bookingId}"]`);
+                    $bookingItem.find('.gpay-placeholder').empty().addClass('hidden');
+                    $bookingItem.find('.pay-booking-btn, .delete-booking-btn').removeClass('hidden');
+                } else {
+                     showGeneralAlert(errorMsg, "支付錯誤");
                 }
-                const $errorPlaceholder = $(personalInfoModalEl).hasClass('show') ? $bookingErrorPlaceholder : $myBookingsMsgPlaceholder;
-                showMessage($errorPlaceholder, errorMsg, true);
-                const price = currentBookingData.bookingPrice;
-                if (price !== null && $gpayContainer.length) {
-                    addGooglePayButton(price, 'TWD', $gpayContainer);
-                    const $bookingItem = $gpayContainer.closest('.booking-item');
-                    $bookingItem.find('.pay-booking-btn').removeClass('hidden');
-                    $bookingItem.find('.delete-booking-btn').removeClass('hidden');
-                }
+                currentPendingBookingId = null;
             }
         });
     }
 
-    function storeFocus() {
-        lastFocusedElement = document.activeElement;
-    }
-
-    function restoreFocus() {
-        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
-            if (!$(generalAlertModalEl).hasClass('show')) {
-                setTimeout(() => {
-                    try {
-                        lastFocusedElement.focus();
-                    } catch (e) {}
-                    lastFocusedElement = null;
-                }, 0);
-            } else {
-                lastFocusedElement = null;
-            }
-        }
-    }
-
-    function setupModalFocusManagement(modalElement) {
-        if (!modalElement) return;
-        const $modalElement = $(modalElement);
-        $modalElement.on('show.bs.modal', storeFocus);
-        $modalElement.on('hidden.bs.modal', restoreFocus);
-        $modalElement.on('hide.bs.modal', function(event) {
-            if (modalElement.contains(document.activeElement)) {
-                if (document.activeElement && typeof document.activeElement.blur === 'function') {
-                    try {
-                        document.activeElement.blur();
-                    } catch (e) {}
-                }
-            }
-        });
-    }
-
-    setupModalFocusManagement(loginModalEl);
-    setupModalFocusManagement(registerModalEl);
-    setupModalFocusManagement(personalInfoModalEl);
-    setupModalFocusManagement(bookingSuccessModalEl);
-    setupModalFocusManagement(myBookingsModalEl);
-    setupModalFocusManagement(generalAlertModalEl);
-    setupModalFocusManagement(cancelBookingConfirmModalEl);
 
     $loginLink.on('click', function() {
+        storeFocus();
         clearMessage($loginErrorPlaceholder);
         $('#loginForm')[0].reset();
         if (loginModal) loginModal.show();
     });
+
     $('#showRegisterBtn').on('click', function() {
         if (loginModal) loginModal.hide();
         clearMessage($registerErrorPlaceholder);
         $('#registerForm')[0].reset();
         if (registerModal) registerModal.show();
     });
+
     $('#showLoginBtn').on('click', function() {
         if (registerModal) registerModal.hide();
         clearMessage($loginErrorPlaceholder);
         $('#loginForm')[0].reset();
         if (loginModal) loginModal.show();
     });
+
     $('#loginForm').on('submit', function(event) {
         event.preventDefault();
         const email = $('#username').val().trim();
         const password = $('#password').val().trim();
+
         if (!email || !password) {
             showMessage($loginErrorPlaceholder, '請輸入電子郵件和密碼！', true);
             return;
         }
-        const loginPayload = {
-            email: email,
-            password: password
-        };
+        clearMessage($loginErrorPlaceholder);
+
+        const loginPayload = { email, password };
         const $loginSubmitBtn = $('#loginSubmitBtn');
+
         $.ajax({
             url: LOGIN_URL,
             method: 'POST',
@@ -527,16 +708,23 @@ $(document).ready(function() {
             data: JSON.stringify(loginPayload),
             dataType: 'json',
             beforeSend: function() {
-                $loginSubmitBtn.prop('disabled', true).text('登入中...');
+                $loginSubmitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 登入中...');
             },
             success: function(response) {
-                if (response && response.token) {
-                    setToken(response.token);
+                let tokenToUse = null;
+                if (response && response.data && response.data.token) {
+                    tokenToUse = response.data.token;
+                } else if (response && response.token) {
+                    tokenToUse = response.token;
+                }
+
+                if (tokenToUse) {
+                    setToken(tokenToUse);
                     if (loginModal) loginModal.hide();
                     $('#loginForm')[0].reset();
                     checkLoginStatus();
                 } else {
-                    showMessage($loginErrorPlaceholder, '登入成功但發生未預期的錯誤。', true);
+                    showMessage($loginErrorPlaceholder, '登入成功但發生未預期的錯誤 (缺少 Token)。', true);
                     removeToken();
                     updateLoginStateUI(false);
                 }
@@ -548,9 +736,9 @@ $(document).ready(function() {
                 } else if (jqXHR.status === 400 || jqXHR.status === 401) {
                     errorMsg = '電子郵件或密碼錯誤。';
                 } else if (jqXHR.status === 0) {
-                    errorMsg = '無法連線至伺服器。';
-                } else {
-                    errorMsg = `登入失敗 (${jqXHR.status})。`;
+                     errorMsg = '無法連線至伺服器，請檢查網路連線。';
+                 } else {
+                    errorMsg = `登入失敗 (${jqXHR.status})，請稍後再試。`;
                 }
                 showMessage($loginErrorPlaceholder, errorMsg, true);
                 removeToken();
@@ -561,29 +749,32 @@ $(document).ready(function() {
             }
         });
     });
+
     $('#registerForm').on('submit', function(event) {
         event.preventDefault();
         const name = $('#registerName').val().trim();
         const email = $('#registerEmail').val().trim();
         const password = $('#registerPassword').val().trim();
+        const age = $('#registerAge').val() ? parseInt($('#registerAge').val()) : null;
+        const gender = $('#registerGender').val() || null;
+
         if (!name || !email || !password) {
-            showMessage($registerErrorPlaceholder, '所有欄位皆為必填！', true);
+            showMessage($registerErrorPlaceholder, '姓名、Email和密碼皆為必填！', true);
             return;
         }
         if (password.length < 6) {
-            showMessage($registerErrorPlaceholder, '密碼長度至少需要 6 位！', true);
+            showMessage($registerErrorPlaceholder, '密碼長度至少需要6位！', true);
             return;
         }
         if (!/\S+@\S+\.\S+/.test(email)) {
-            showMessage($registerErrorPlaceholder, '請輸入有效的電子郵件格式！', true);
-            return;
-        }
-        const registerPayload = {
-            name: name,
-            email: email,
-            password: password
-        };
+             showMessage($registerErrorPlaceholder, '請輸入有效的電子郵件格式！', true);
+             return;
+         }
+        clearMessage($registerErrorPlaceholder);
+
+        const registerPayload = { name, email, password, age, gender };
         const $registerSubmitBtn = $('#registerSubmitBtn');
+
         $.ajax({
             url: REGISTER_URL,
             method: 'POST',
@@ -591,7 +782,7 @@ $(document).ready(function() {
             data: JSON.stringify(registerPayload),
             dataType: 'json',
             beforeSend: function() {
-                $registerSubmitBtn.prop('disabled', true).text('註冊中...');
+                $registerSubmitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 註冊中...');
             },
             success: function(response) {
                 if (response && response.ok) {
@@ -613,9 +804,9 @@ $(document).ready(function() {
                 } else if (jqXHR.status === 400) {
                     errorMsg = '註冊失敗，此 Email 可能已被註冊或輸入資料有誤。';
                 } else if (jqXHR.status === 0) {
-                    errorMsg = '無法連線至伺服器。';
-                } else {
-                    errorMsg = `註冊失敗 (${jqXHR.status})。`;
+                     errorMsg = '無法連線至伺服器，請檢查網路連線。';
+                 } else {
+                    errorMsg = `註冊失敗 (${jqXHR.status})，請稍後再試。`;
                 }
                 showMessage($registerErrorPlaceholder, errorMsg, true);
             },
@@ -624,11 +815,14 @@ $(document).ready(function() {
             }
         });
     });
+
     $logoutBtn.on('click', function() {
         removeToken();
         updateLoginStateUI(false);
     });
+
     $tripListContainer.on('click', '.book-btn', function() {
+        storeFocus();
         const token = getToken();
         if (!token) {
             clearMessage($loginErrorPlaceholder);
@@ -636,6 +830,7 @@ $(document).ready(function() {
             if (loginModal) loginModal.show();
             return;
         }
+
         const $card = $(this).closest('.trip-card');
         const tripName = $card.data('trip-name');
         const tripImage = $card.data('trip-image');
@@ -646,6 +841,7 @@ $(document).ready(function() {
         const $selectedTimeOption = $timeSelect.find('option:selected');
         const bookingTime = $selectedTimeOption.val();
         const bookingPrice = $selectedTimeOption.data('price');
+
         if (!bookingDate) {
             showGeneralAlert('請先選擇預訂日期！', '錯誤');
             $bookingDateInput.focus();
@@ -660,18 +856,13 @@ $(document).ready(function() {
             showGeneralAlert("無法預訂此行程，缺少景點 ID。", "錯誤");
             return;
         }
-        if (bookingPrice === undefined || bookingPrice === null) {
-            showGeneralAlert("無法預訂此行程，缺少價格資訊。", "錯誤");
+        if (bookingPrice === undefined || bookingPrice === null || isNaN(bookingPrice)) {
+            showGeneralAlert("無法預訂此行程，缺少或價格資訊無效。", "錯誤");
             return;
         }
-        currentBookingData = {
-            tripName,
-            bookingDate,
-            bookingTime,
-            bookingPrice,
-            tripImage,
-            attractionId
-        };
+
+        currentBookingData = { tripName, bookingDate, bookingTime, bookingPrice, tripImage, attractionId };
+
         $('#confirmTripName').text(tripName);
         $('#confirmTripImage').attr('src', tripImage || 'https://placehold.co/100x75/E8E8E8/BDBDBD?text=Trip');
         $('#confirmBookingDate').text(bookingDate);
@@ -680,20 +871,26 @@ $(document).ready(function() {
         $('#currentBookingId').val('');
         clearMessage($bookingErrorPlaceholder);
         $('#bookingForm')[0].reset();
+
         if (userData && userData.name) {
             $('#name').val(userData.name);
         } else {
-            if (getToken()) {
-                checkLoginStatus();
-            }
+             if (getToken()) {
+                 checkLoginStatus().then(() => {
+                     if (userData && userData.name) $('#name').val(userData.name);
+                 });
+             }
         }
-        $('#customerIdNumber').val('');
-        $('#phone').val('');
+        $('#customerIdNumber').val('').removeClass('is-invalid');
+        $('#phone').val('').removeClass('is-invalid');
+        $('#name').removeClass('is-invalid');
         $('#bookingForm').removeClass('hidden');
         $submitBookingBtn.removeClass('hidden').prop('disabled', false).text('建立訂單以進行付款');
         $googlePayButtonContainer.addClass('hidden').empty();
+
         if (personalInfoModal) personalInfoModal.show();
     });
+
     $('#bookingForm').on('submit', function(event) {
         event.preventDefault();
         const token = getToken();
@@ -707,6 +904,7 @@ $(document).ready(function() {
             }
             return;
         }
+
         const name = $('#name').val().trim();
         const customerIdNumber = $('#customerIdNumber').val().trim().toUpperCase();
         const phone = $('#phone').val().trim();
@@ -714,12 +912,12 @@ $(document).ready(function() {
         let errorMessages = [];
         const idRegex = /^[A-Z][12]\d{8}$/;
         const phoneRegex = /^09\d{8}$/;
+
+        $('.is-invalid').removeClass('is-invalid');
         if (!name) {
             errorMessages.push('請填寫聯絡姓名！');
             isValid = false;
             $('#name').addClass('is-invalid');
-        } else {
-            $('#name').removeClass('is-invalid');
         }
         if (!customerIdNumber) {
             errorMessages.push('請填寫身分證字號！');
@@ -729,8 +927,6 @@ $(document).ready(function() {
             errorMessages.push('身分證字號格式不正確 (應為1位大寫英文字母 + 9位數字)。');
             isValid = false;
             $('#customerIdNumber').addClass('is-invalid');
-        } else {
-            $('#customerIdNumber').removeClass('is-invalid');
         }
         if (!phone) {
             errorMessages.push('請填寫聯絡電話！');
@@ -740,46 +936,43 @@ $(document).ready(function() {
             errorMessages.push('聯絡電話格式不正確 (應為 09 開頭的 10 位數字)。');
             isValid = false;
             $('#phone').addClass('is-invalid');
-        } else {
-            $('#phone').removeClass('is-invalid');
         }
+
         if (!isValid) {
             showMessage($bookingErrorPlaceholder, errorMessages.join('<br>'), true);
             return;
         } else {
             clearMessage($bookingErrorPlaceholder);
-            $('.is-invalid').removeClass('is-invalid');
         }
+
         if (!currentBookingData.attractionId || !currentBookingData.bookingDate || !currentBookingData.bookingTime || currentBookingData.bookingPrice === null) {
             showMessage($bookingErrorPlaceholder, '預訂資訊不完整或已遺失，請關閉視窗後重新選擇行程。', true);
             return;
         }
+
         const bookingPayload = {
             attractionId: currentBookingData.attractionId,
             date: currentBookingData.bookingDate,
             time: currentBookingData.bookingTime,
             price: currentBookingData.bookingPrice,
-            attractionName: currentBookingData.tripName,
-            attractionImage: currentBookingData.tripImage,
             contactName: name,
             customerIdNumber: customerIdNumber,
             contactPhone: phone
         };
+
         $.ajax({
             url: BOOKING_URL,
             method: 'POST',
             contentType: 'application/json',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             data: JSON.stringify(bookingPayload),
             dataType: 'json',
             beforeSend: function() {
                 $submitBookingBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 建立訂單中...');
             },
             success: function(response) {
-                if (response && response.ok && response.bookingId) {
-                    currentPendingBookingId = response.bookingId;
+                if (response && response.data && response.data.id) {
+                    currentPendingBookingId = response.data.id;
                     $('#currentBookingId').val(currentPendingBookingId);
                     $('#bookingForm').addClass('hidden');
                     $submitBookingBtn.addClass('hidden');
@@ -797,28 +990,27 @@ $(document).ready(function() {
                         errorMsg = jqXHR.responseJSON.message;
                     }
                     if (jqXHR.responseJSON.errors && typeof jqXHR.responseJSON.errors === 'object') {
-                        const fieldErrors = Object.entries(jqXHR.responseJSON.errors).map(([field, msg]) => `${msg}`).join('<br>');
+                        const fieldErrors = Object.entries(jqXHR.responseJSON.errors)
+                                                 .map(([field, msg]) => `${msg}`)
+                                                 .join('<br>');
                         if (fieldErrors) {
                             errorMsg = `資料驗證失敗：<br>${fieldErrors}`;
                         }
                     }
                 } else if (jqXHR.status === 401 || jqXHR.status === 403) {
                     errorMsg = '您的登入已逾時或無權限，請重新登入。';
-                    removeToken();
-                    updateLoginStateUI(false);
+                    removeToken(); updateLoginStateUI(false);
                     if (personalInfoModal) personalInfoModal.hide();
-                    if (loginModal) {
-                        clearMessage($loginErrorPlaceholder);
-                        showMessage($loginErrorPlaceholder, errorMsg, true);
-                        loginModal.show();
-                    }
+                    if (loginModal) { clearMessage($loginErrorPlaceholder); showMessage($loginErrorPlaceholder, errorMsg, true); loginModal.show(); }
                 } else if (jqXHR.status === 400) {
-                    errorMsg = '提交的資料有誤或不完整，請檢查後再試。';
-                } else if (jqXHR.status === 500) {
-                    errorMsg = '伺服器內部錯誤，無法建立預定。';
+                    errorMsg = '提交的資料有誤、不完整或已有相同預訂。';
+                } else if (jqXHR.status === 404) {
+                     errorMsg = '找不到指定的景點，無法建立預訂。';
+                 } else if (jqXHR.status === 500) {
+                    errorMsg = '伺服器內部錯誤，無法建立預訂。';
                 } else if (jqXHR.status === 0) {
-                    errorMsg = '無法連線至伺服器。';
-                } else {
+                     errorMsg = '無法連線至伺服器，請檢查網路連線。';
+                 } else {
                     errorMsg = `建立訂單失敗 (${jqXHR.status})。`;
                 }
                 showMessage($bookingErrorPlaceholder, errorMsg, true);
@@ -826,8 +1018,10 @@ $(document).ready(function() {
             }
         });
     });
+
     $myBookingsBtn.on('click', function() {
-        const token = getToken();
+         storeFocus();
+         const token = getToken();
         if (!token) {
             if (loginModal) {
                 clearMessage($loginErrorPlaceholder);
@@ -836,54 +1030,40 @@ $(document).ready(function() {
             }
             return;
         }
-        if (!myBookingsModal) {
-            return;
-        }
+        if (!myBookingsModal) return;
+
         $myBookingsListContainer.empty();
         clearMessage($myBookingsMsgPlaceholder);
         showMessage($myBookingsMsgPlaceholder, '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 載入預訂資料中...', false);
         myBookingsModal.show();
+
         $.ajax({
-            url: BOOKING_URL,
+            url: BOOKINGS_URL,
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             dataType: 'json',
             success: function(response) {
                 clearMessage($myBookingsMsgPlaceholder);
-                const bookings = (response && response.data && Array.isArray(response.data)) ? response.data : null;
-                if (bookings) {
-                    if (bookings.length > 0) {
-                        renderMyBookingsList(bookings);
-                    } else {
-                        showMessage($myBookingsMsgPlaceholder, '您目前沒有任何預訂紀錄。', false);
-                    }
+                const bookings = (response && response.data && Array.isArray(response.data)) ? response.data : [];
+                if (bookings.length > 0) {
+                    renderMyBookingsList(bookings);
                 } else {
-                    const errorMsg = (response && response.message) ? response.message : '無法解析預訂資料或查無資料。';
-                    showMessage($myBookingsMsgPlaceholder, errorMsg, !response ?.data);
+                    showMessage($myBookingsMsgPlaceholder, '您目前沒有任何預訂紀錄。', false);
                 }
             },
             error: function(jqXHR) {
                 clearMessage($myBookingsMsgPlaceholder);
                 let errorMsg = '查詢預訂紀錄時發生錯誤。';
-                if (jqXHR.status === 401 || jqXHR.status === 403) {
+                 if (jqXHR.status === 401 || jqXHR.status === 403) {
                     errorMsg = '您的登入已逾時或無權限，請重新登入。';
-                    removeToken();
-                    updateLoginStateUI(false);
+                    removeToken(); updateLoginStateUI(false);
                     myBookingsModal.hide();
-                    if (loginModal) {
-                        clearMessage($loginErrorPlaceholder);
-                        showMessage($loginErrorPlaceholder, errorMsg, true);
-                        loginModal.show();
-                    }
-                } else if (jqXHR.status === 500) {
-                    errorMsg = '伺服器內部錯誤，無法查詢預定。';
-                } else if (jqXHR.status === 0) {
-                    errorMsg = '無法連線至伺服器。';
+                    if (loginModal) { clearMessage($loginErrorPlaceholder); showMessage($loginErrorPlaceholder, errorMsg, true); loginModal.show(); }
                 } else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                     errorMsg = jqXHR.responseJSON.message;
-                } else {
+                } else if (jqXHR.status === 0) {
+                     errorMsg = '無法連線至伺服器，請檢查網路連線。';
+                 } else {
                     errorMsg = `查詢預訂紀錄失敗 (${jqXHR.status})。`;
                 }
                 showMessage($myBookingsMsgPlaceholder, errorMsg, true);
@@ -899,30 +1079,29 @@ $(document).ready(function() {
         }
         try {
             bookings.sort((a, b) => new Date(b.date) - new Date(a.date));
-        } catch (e) {}
+        } catch (e) { }
+
         bookings.forEach(booking => {
-            const attractionName = booking.attractionName || '景點名稱未知';
-            const imageUrl = booking.attractionImage || 'https://placehold.co/80x60/E8E8E8/BDBDBD?text=No+Image';
+            const attractionName = booking.attraction?.name || '景點名稱未知';
+            const imageUrl = booking.attraction?.image || 'https://placehold.co/80x60/E8E8E8/BDBDBD?text=No+Image';
             let dateStr = '日期未知';
             try {
                 if (booking.date) {
-                    dateStr = new Date(booking.date).toLocaleDateString('zh-TW', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
+                    dateStr = new Date(booking.date).toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
                 }
-            } catch (e) {}
+            } catch (e) { }
             const timeStr = booking.time === 'morning' ? '上半天 (09:00-12:00)' : (booking.time === 'afternoon' ? '下半天 (13:00-17:00)' : '時間未知');
             const price = booking.price;
-            const priceStr = (price !== null && !isNaN(price)) ? `NT$ ${price}` : '價格未知';
-            const bookingId = booking.id || '未知編號';
+            const priceStr = (price !== null && !isNaN(price)) ? `NT$ ${Number(price).toLocaleString()}` : '價格未知';
+            const bookingId = booking.id || booking.number || '未知編號';
             const status = booking.status ? String(booking.status).toUpperCase() : 'UNKNOWN';
             let statusBadge = '';
             let actionButtonsHtml = '';
             let gpayPlaceholderHtml = '';
+
             switch (status) {
                 case 'PAID':
+                case 'CONFIRMED':
                     statusBadge = '<span class="badge bg-success">已付款</span>';
                     break;
                 case 'PENDING':
@@ -939,37 +1118,67 @@ $(document).ready(function() {
                     statusBadge = `<span class="badge bg-secondary">已取消</span>`;
                     break;
                 default:
-                    statusBadge = `<span class="badge bg-info text-dark">${booking.status || '狀態未知'}</span>`;
+                    statusBadge = `<span class="badge bg-info text-dark">${escapeHtml(booking.status || '狀態未知')}</span>`;
                     break;
             }
-            const bookingItemHtml = `<div class="list-group-item booking-item" data-booking-id="${bookingId}"><div class="row g-2 align-items-center"><div class="col-auto"><img src="${imageUrl}" alt="${attractionName}" class="img-fluid rounded" style="width: 80px; height: 60px; object-fit: cover;" onerror="this.onerror=null; this.src='https://placehold.co/80x60/E8E8E8/BDBDBD?text=Img+Err';" ></div><div class="col"><h5 class="mb-1">${attractionName} ${statusBadge}</h5><p class="mb-1 small text-muted">預定編號: ${bookingId}</p><p class="mb-1">日期: ${dateStr}</p><p class="mb-1">時間: ${timeStr}</p><small>費用: ${priceStr}</small></div><div class="col-12 col-md-auto mt-2 mt-md-0"><div class="d-flex flex-column align-items-stretch align-items-md-end" style="min-width: 100px;">${actionButtonsHtml}${gpayPlaceholderHtml}</div></div></div></div>`;
+
+            const bookingItemHtml = `
+            <div class="list-group-item booking-item" data-booking-id="${bookingId}">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(attractionName)}" class="img-fluid rounded" style="width: 80px; height: 60px; object-fit: cover;" onerror="this.onerror=null; this.src='https://placehold.co/80x60/E8E8E8/BDBDBD?text=Img+Err';">
+                    </div>
+                    <div class="col">
+                        <h5 class="mb-1">${escapeHtml(attractionName)} ${statusBadge}</h5>
+                        <p class="mb-1 small text-muted">預定編號: ${escapeHtml(String(bookingId))}</p>
+                        <p class="mb-1">日期: ${dateStr}</p>
+                        <p class="mb-1">時間: ${timeStr}</p>
+                        <small>費用: ${priceStr}</small>
+                    </div>
+                    <div class="col-12 col-md-auto mt-2 mt-md-0">
+                        <div class="d-flex flex-column align-items-stretch align-items-md-end" style="min-width: 100px;">
+                            ${actionButtonsHtml}
+                            ${gpayPlaceholderHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
             $myBookingsListContainer.append(bookingItemHtml);
         });
     }
+
     $myBookingsListContainer.on('click', '.pay-booking-btn', function() {
+        storeFocus();
         const $button = $(this);
         const bookingId = $button.data('booking-id');
         const price = $button.data('price');
         const $bookingItem = $button.closest('.booking-item');
         const $gpayPlaceholder = $bookingItem.find('.gpay-placeholder');
+
         if (!bookingId || price === undefined || price === null || isNaN(price)) {
             showMessage($myBookingsMsgPlaceholder, '無法處理付款，訂單資訊或價格無效。', true);
             return;
         }
         currentPendingBookingId = bookingId;
         clearMessage($myBookingsMsgPlaceholder);
-        $myBookingsListContainer.find('.gpay-placeholder').not($gpayPlaceholder).empty();
+
+        $myBookingsListContainer.find('.gpay-placeholder').not($gpayPlaceholder).empty().addClass('hidden');
         $button.addClass('hidden');
         $bookingItem.find('.delete-booking-btn').addClass('hidden');
+        $gpayPlaceholder.removeClass('hidden').empty();
+
         addGooglePayButton(price, 'TWD', $gpayPlaceholder);
     });
+
     $myBookingsListContainer.on('click', '.delete-booking-btn', function() {
+        storeFocus();
         const $button = $(this);
         const $bookingItem = $button.closest('.booking-item');
         const bookingId = $bookingItem.data('booking-id');
         const tripName = $bookingItem.find('h5').contents().filter(function() {
             return this.nodeType === 3;
         }).text().trim() || '此行程';
+
         if (!bookingId) {
             showMessage($myBookingsMsgPlaceholder, '無法取消此預訂，缺少預訂 ID。', true);
             return;
@@ -986,7 +1195,7 @@ $(document).ready(function() {
             cancelBookingConfirmModal.show();
         } else {
             if (confirm(`您確定要取消預訂「${tripName}」(編號: ${bookingId}) 嗎？此操作無法復原。`)) {
-                executeCancelBooking(bookingId);
+                executeCancelBooking();
             }
         }
     }
@@ -996,6 +1205,7 @@ $(document).ready(function() {
         const $confirmButton = $('#confirmCancelBookingBtn');
         const $bookingItem = $myBookingsListContainer.find(`.booking-item[data-booking-id="${bookingId}"]`);
         const tripName = $('#cancelBookingTripName').text();
+
         if (!bookingId) {
             showMessage($myBookingsMsgPlaceholder, '無法取消此預訂，缺少預訂 ID。', true);
             if (cancelBookingConfirmModal) cancelBookingConfirmModal.hide();
@@ -1006,18 +1216,17 @@ $(document).ready(function() {
             showMessage($myBookingsMsgPlaceholder, '您的登入已逾時，請重新登入後再試。', true);
             if (cancelBookingConfirmModal) cancelBookingConfirmModal.hide();
             if (myBookingsModal) myBookingsModal.hide();
-            if (loginModal) loginModal.show();
+            if (loginModal) { clearMessage($loginErrorPlaceholder); showMessage($loginErrorPlaceholder, '請重新登入', true); loginModal.show(); }
             return;
         }
+
         $.ajax({
-            url: `${BOOKING_URL}/${bookingId}`,
+            url: BOOKING_DELETE_URL(bookingId),
             method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             dataType: 'json',
             beforeSend: function() {
-                $confirmButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                $confirmButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 取消中...');
                 clearMessage($myBookingsMsgPlaceholder);
             },
             success: function(response) {
@@ -1042,25 +1251,20 @@ $(document).ready(function() {
                 let errorMsg = '取消預訂時發生錯誤。';
                 if (jqXHR.status === 401 || jqXHR.status === 403) {
                     errorMsg = '您的登入已逾時或無權限取消此預訂。';
-                    removeToken();
-                    updateLoginStateUI(false);
+                    removeToken(); updateLoginStateUI(false);
                     if (cancelBookingConfirmModal) cancelBookingConfirmModal.hide();
                     if (myBookingsModal) myBookingsModal.hide();
-                    if (loginModal) {
-                        clearMessage($loginErrorPlaceholder);
-                        showMessage($loginErrorPlaceholder, errorMsg, true);
-                        loginModal.show();
-                    }
+                    if (loginModal) { clearMessage($loginErrorPlaceholder); showMessage($loginErrorPlaceholder, errorMsg, true); loginModal.show(); }
                 } else if (jqXHR.status === 404) {
                     errorMsg = '找不到要取消的預訂。';
-                } else if (jqXHR.status === 409) {
-                    errorMsg = '無法取消此預訂，狀態可能已變更。';
-                    setTimeout(() => $myBookingsBtn.trigger('click'), 1500);
-                } else if (jqXHR.status === 500) {
+                } else if (jqXHR.status === 400) {
+                     errorMsg = '無法取消此預訂，狀態可能已變更或不允許取消。';
+                     setTimeout(() => $myBookingsBtn.trigger('click'), 1500);
+                 } else if (jqXHR.status === 500) {
                     errorMsg = '伺服器內部錯誤，無法取消預訂。';
                 } else if (jqXHR.status === 0) {
-                    errorMsg = '無法連線至伺服器。';
-                } else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                     errorMsg = '無法連線至伺服器，請檢查網路連線。';
+                 } else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                     errorMsg = jqXHR.responseJSON.message;
                 } else {
                     errorMsg = `取消預訂失敗 (${jqXHR.status})。`;
@@ -1077,19 +1281,68 @@ $(document).ready(function() {
     $('#cancelCancelBookingBtn').on('click', function() {
         if (cancelBookingConfirmModal) cancelBookingConfirmModal.hide();
     });
-    $('#searchBtn').on('click', function() {
-        const searchText = $('#searchInput').val();
-        renderTripCards(allTripsData, searchText);
+
+    $districtSelect.on('change', function() {
+        const selectedDistrict = $(this).val();
+        const currentKeyword = $searchInput.val().trim();
+        loadTrips(0, currentKeyword, selectedDistrict, false);
     });
-    $('#searchInput').on('input', function() {
-        renderTripCards(allTripsData, $(this).val());
+
+    $searchBtn.on('click', function() {
+        const currentKeyword = $searchInput.val().trim();
+        const selectedDistrict = $districtSelect.val();
+        loadTrips(0, currentKeyword, selectedDistrict, false);
     });
-    $('#searchInput').on('keypress', function(e) {
+
+    $searchInput.on('keypress', function(e) {
         if (e.which === 13) {
             e.preventDefault();
-            $('#searchBtn').trigger('click');
+            $searchBtn.trigger('click');
         }
     });
+
+    $tripListContainer.on('click', '.attraction-detail-trigger', function() {
+        storeFocus();
+        const $card = $(this).closest('.trip-card');
+        const attractionId = $card.data('attraction-id');
+        if (attractionId) {
+            showAttractionDetails(attractionId);
+        } else {
+            showGeneralAlert("無法獲取景點詳細資訊。", "錯誤");
+        }
+    });
+
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    };
+
+    const handleScroll = debounce(function() {
+        const scrollWrapper = $tripListContainer[0];
+        const scrollThreshold = 300;
+        const needsLoading = scrollWrapper.scrollWidth - scrollWrapper.scrollLeft - scrollWrapper.clientWidth < scrollThreshold;
+
+        if (hasMoreTrips && !isLoadingTrips && needsLoading) {
+             if (currentApiPage !== null) {
+                 const currentKeyword = $searchInput.val().trim();
+                 const selectedDistrict = $districtSelect.val();
+                 loadTrips(currentApiPage, currentKeyword, selectedDistrict, true);
+             }
+        }
+    }, 250);
+
+    $tripListContainer.on('scroll', handleScroll);
+
     $(window).on('scroll', function() {
         if ($(window).scrollTop() > 300) {
             $backToTopBtn.fadeIn();
@@ -1097,12 +1350,12 @@ $(document).ready(function() {
             $backToTopBtn.fadeOut();
         }
     });
+
     $backToTopBtn.on('click', function(e) {
         e.preventDefault();
-        $('html, body').animate({
-            scrollTop: 0
-        }, 300);
+        $('html, body').animate({ scrollTop: 0 }, 300);
     });
+
     $('#viewMyBookingsAfterSuccess').on('click', function() {
         if ($myBookingsBtn.length) {
             $myBookingsBtn.trigger('click');
@@ -1113,6 +1366,7 @@ $(document).ready(function() {
     });
 
     initializeGooglePay();
+    loadDistricts();
     loadTrips();
     checkLoginStatus();
 

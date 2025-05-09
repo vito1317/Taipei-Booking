@@ -40,7 +40,7 @@ body {
 }
 
 .hero-section {
-    background: url('image/9.jpg') no-repeat center center;
+    background: url('../static/image/9.jpg') no-repeat center center;
     background-size: cover;
     height: 40vh;
     display: flex;
@@ -81,11 +81,13 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,.1);
 }
-.search-container .form-control {
+.search-container .form-control,
+.search-container .form-select {
     height: calc(1.5em + 1rem + 2px);
 }
  .search-container .btn-primary {
      padding: 0.5rem 1.5rem;
+     height: calc(1.5em + 1rem + 2px);
  }
 
 .trip-section-title {
@@ -100,34 +102,32 @@ body {
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
-    padding-bottom: 15px; /* 留出空間給滾動條 */
-    margin-left: -15px; /* 補償容器 padding */
-    margin-right: -15px; /* 補償容器 padding */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: #e2e8f0 transparent; /* Firefox: thumb color track color */
+    padding-bottom: 15px;
+    margin-left: -15px;
+    margin-right: -15px;
+    scrollbar-width: thin;
+    scrollbar-color: #ced4da transparent;
 }
 
-/* Webkit (Chrome, Safari) Scrollbar Styling */
 .horizontal-scroll-wrapper::-webkit-scrollbar {
     height: 8px;
 }
 .horizontal-scroll-wrapper::-webkit-scrollbar-track {
-    background: transparent; /* 預設隱藏軌道 */
+    background: transparent;
     border-radius: 10px;
 }
 .horizontal-scroll-wrapper::-webkit-scrollbar-thumb {
-    background-color: #e2e8f0; /* 預設淺灰色滑塊 */
+    background-color: #ced4da;
     border-radius: 10px;
-    border: 2px solid transparent; /* 可選：增加邊框使其更細 */
-    background-clip: padding-box; /* 重要：讓背景色只在 padding box 內 */
-    transition: background-color 0.2s ease-in-out; /* 平滑過渡 */
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease-in-out;
 }
 .horizontal-scroll-wrapper:hover::-webkit-scrollbar-thumb {
-    background-color: #a0aec0; /* 滑鼠懸停時變深灰色 */
+    background-color: #adb5bd;
 }
-/* 可選：滑鼠按住滑塊時的樣式 */
 .horizontal-scroll-wrapper::-webkit-scrollbar-thumb:active {
-    background-color: #718096;
+    background-color: #6c757d;
 }
 
 
@@ -142,7 +142,8 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    opacity: 0; /* 由 AOS 控制初始透明度 */
+    opacity: 0;
+    cursor: default;
 }
 
 .trip-card:hover {
@@ -150,7 +151,18 @@ body {
     box-shadow: 0 8px 16px rgba(0,0,0,.15);
 }
 
-.trip-card img {
+.trip-card .card-img-top,
+.trip-card .card-title.location-name {
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+.trip-card .card-img-top:hover,
+.trip-card .card-title.location-name:hover {
+    opacity: 0.85;
+}
+
+
+.trip-card img.card-img-top {
     height: 180px;
     object-fit: cover;
     border-top-left-radius: 10px;
@@ -159,6 +171,9 @@ body {
 
 .trip-card .card-body {
     padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 180px;
 }
 
 .trip-card .card-title {
@@ -168,14 +183,15 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #333;
 }
 
-.trip-card .date-picker {
+.trip-card .date-picker,
+.trip-card .time-picker {
     margin-bottom: 0.8rem;
     font-size: 0.9rem;
     padding: 0.3rem 0.5rem;
 }
-
 
 .trip-card .book-btn {
     width: 100%;
@@ -184,6 +200,7 @@ body {
     background-color: #dc3545;
     border-color: #dc3545;
     color: white;
+    margin-top: auto;
 }
  .trip-card .book-btn:hover {
     background-color: #c82333;
@@ -293,12 +310,12 @@ footer a:hover {
     color: #6c757d;
 }
 
-.delete-booking-btn {
+.delete-booking-btn, .pay-booking-btn {
     font-size: 0.85rem;
     padding: 0.3rem 0.6rem;
 }
 
-.delete-booking-btn i {
+.delete-booking-btn i, .pay-booking-btn i {
     pointer-events: none;
 }
 
@@ -309,6 +326,112 @@ footer a:hover {
      border-width: 0.2em;
 }
 
+#attractionDetailModal .modal-body {
+    font-size: 0.95rem;
+}
+#attractionDetailModal h5 {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+#attractionDetailModal h6 {
+    font-weight: 600;
+    color: #007bff;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.3rem;
+}
+#attractionDetailModal p {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+    color: #495057;
+}
+#attractionDetailModal p strong {
+    color: #343a40;
+    margin-right: 5px;
+}
+
+#attractionDetailModal .attraction-images-carousel {
+    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    min-height: 200px;
+}
+
+#attractionDetailModal .attraction-images-carousel .slick-list,
+#attractionDetailModal .attraction-images-carousel .slick-track {
+    height: 100%;
+}
+
+#attractionDetailModal .attraction-images-carousel .slick-slide {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 200px;
+}
+
+
+#attractionDetailModal .attraction-images-carousel img,
+#attractionDetailModal .single-image-container img {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 5px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#attractionDetailModal .single-image-container {
+    width: 100%;
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.slick-prev, .slick-next {
+    z-index: 1;
+    height: 40px;
+    width: 40px;
+}
+.slick-prev:before, .slick-next:before {
+    font-size: 30px;
+    color: rgba(0, 0, 0, 0.5);
+    opacity: 0.75;
+}
+.slick-prev { left: -45px; }
+.slick-next { right: -45px; }
+
+.slick-prev:hover:before, .slick-next:hover:before {
+    color: rgba(0, 0, 0, 0.8);
+    opacity: 1;
+}
+.slick-dots li button:before {
+    font-size: 10px;
+    color: #adb5bd;
+}
+.slick-dots li.slick-active button:before {
+    color: #007bff;
+}
+
+
+@media (max-width: 991.98px) {
+    .slick-prev { left: 10px; }
+    .slick-next { right: 10px; }
+    .slick-prev:before, .slick-next:before {
+        color: rgba(255, 255, 255, 0.7);
+    }
+     .slick-prev:hover:before, .slick-next:hover:before {
+        color: rgba(255, 255, 255, 1);
+    }
+}
 
 
 @media (max-width: 767.98px) {
@@ -334,10 +457,32 @@ footer a:hover {
         flex-direction: column;
         align-items: stretch !important;
     }
-    #myBookingsList .booking-item .delete-booking-btn {
+    #myBookingsList .booking-item .delete-booking-btn,
+    #myBookingsList .booking-item .pay-booking-btn {
         margin-top: 0.75rem;
-        align-self: flex-end;
+        align-self: stretch;
     }
+    #myBookingsList .booking-item .gpay-placeholder {
+         align-self: stretch;
+         margin-top: 0.75rem;
+     }
+
+     .search-container .row > * {
+         margin-bottom: 0.5rem;
+     }
+     .search-container .btn-primary {
+         width: 100%;
+     }
+     #attractionDetailModal .attraction-images-carousel img,
+     #attractionDetailModal .single-image-container img {
+        max-height: 250px;
+     }
+     #attractionDetailModal .attraction-images-carousel,
+     #attractionDetailModal .single-image-container {
+        min-height: 150px;
+     }
+
+
 }
 
 @media (max-width: 575.98px) {
@@ -350,10 +495,12 @@ footer a:hover {
         margin-left: 0;
         margin-right: 0;
      }
-     .search-container .row > * {
-         margin-bottom: 0.5rem;
+     #attractionDetailModal .attraction-images-carousel img,
+     #attractionDetailModal .single-image-container img {
+        max-height: 200px;
      }
-     .search-container .btn-primary {
-         width: 100%;
-     }
+    #attractionDetailModal .attraction-images-carousel,
+    #attractionDetailModal .single-image-container {
+        min-height: 120px;
+    }
 }

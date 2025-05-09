@@ -1,3 +1,4 @@
+com\taipeibooking\dto\AttractionDetailDTO.class
 com\taipeibooking\controller\AdminController.class
 com\taipeibooking\exception\BadRequestException.class
 com\taipeibooking\security\JwtTokenProvider.class
@@ -19,17 +20,22 @@ com\taipeibooking\security\JwtRequestFilter.class
 com\taipeibooking\exception\IllegalBookingStateException.class
 com\taipeibooking\service\AdminService.class
 com\taipeibooking\dto\BookingRequest.class
+com\taipeibooking\dto\BookingResponseDTO$AttractionDetails.class
 com\taipeibooking\exception\ResourceNotFoundException.class
 com\taipeibooking\dto\CreateAttractionRequestDTO.class
 com\taipeibooking\dto\AdminUpdateUserRequestDTO.class
+com\taipeibooking\dto\BookingResponseDTO.class
+com\taipeibooking\controller\AttractionController.class
 com\taipeibooking\controller\BookingController.class
 com\taipeibooking\model\Attraction.class
 com\taipeibooking\TaipeiBookingApplication.class
 com\taipeibooking\dto\UpdateUserRoleRequestDTO.class
+com\taipeibooking\service\CustomUserDetailsService.class
 com\taipeibooking\dto\LoginRequest.class
 com\taipeibooking\repository\UserRepository.class
 com\taipeibooking\model\User.class
 com\taipeibooking\repository\AttractionRepository.class
+com\taipeibooking\dto\PaymentRequestDTO.class
 com\taipeibooking\dto\AdminBookingDetailDTO.class
 com\taipeibooking\dto\TrendDataPointDTO.class
 com\taipeibooking\dto\AttractionAdminViewDTO.class

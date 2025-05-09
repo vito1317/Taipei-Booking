@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "users")
@@ -14,136 +13,81 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true)
     private String username;
 
     @Column(nullable = false)
-    @JsonIgnore
-    private String password;
-
-    @Column(nullable = false, length = 50)
     private String name;
 
-    @Column(nullable = false, length = 20)
-    private String role = "ROLE_USER";
+    @Column(nullable = false, unique = true)
+    private String email;
 
-    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP", updatable = false)
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false)
+    private String role = "USER";
+
+    private Integer age;
+    private String gender;
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Booking> bookings = new ArrayList<>();
+    private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Booking> bookings = new ArrayList<>();
 
     public User() {
     }
 
-
-    public User(String name, String username, String password, String role) {
-        this.name = name;
+    public User(String username, String name, String email, String password, String role, Integer age, String gender) {
         this.username = username;
-        this.password = password;
-        this.setRole(role);
-    }
-
-
-     public User(String name, String username, String password) {
-         this.name = name;
-         this.username = username;
-         this.password = password;
-
-     }
-
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
         this.name = name;
-    }
-
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        if ("ROLE_USER".equals(role) || "ROLE_ADMIN".equals(role) || "ROLE_TRIP_MANAGER".equals(role)) {
-             this.role = role;
-        } else {
-            this.role = "ROLE_USER";
-        }
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.age = age;
+        this.gender = gender;
     }
 
 
 
-    public List<Booking> getBookings() {
-        return bookings;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setBookings(List<Booking> bookings) {
-        this.bookings = bookings;
-    }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
-    public void addBooking(Booking booking) {
-        bookings.add(booking);
-        booking.setUser(this);
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public List<Booking> getBookings() { return bookings; }
+    public void setBookings(List<Booking> bookings) { this.bookings = bookings; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public void removeBooking(Booking booking) {
-        bookings.remove(booking);
-        booking.setUser(null);
-    }
 
     @PrePersist
     protected void onCreate() {
-        if (createdAt == null) {
-             createdAt = LocalDateTime.now();
-        }
-
-         if (role == null || role.isEmpty() || !List.of("ROLE_USER", "ROLE_ADMIN", "ROLE_TRIP_MANAGER").contains(role)) {
-             role = "ROLE_USER";
-         }
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    @Override
-    public String toString() {
-        return "User{" +
-               "id=" + id +
-               ", name='" + name + '\'' +
-               ", username='" + username + '\'' +
-               ", role='" + role + '\'' +
-               ", createdAt=" + createdAt +
-               '}';
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>後台管理系統</title>
+    <title>台北漫遊 - 後台管理</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -24,7 +24,7 @@
             <form id="loginForm">
                 <div class="mb-6">
                     <label for="username" class="block text-gray-700 text-sm font-bold mb-2">帳號 (Email)</label>
-                    <input type="email" id="username" name="username" value="" placeholder="請輸入 Email" class="input-field" required>
+                    <input type="email" id="username" name="username" value="" placeholder="請輸入管理員 Email" class="input-field" required>
                 </div>
                 <div class="mb-6">
                     <label for="password" class="block text-gray-700 text-sm font-bold mb-2">密碼</label>
@@ -76,8 +76,8 @@
                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md flex items-center">
                             <div class="bg-blue-500 p-3 rounded-full mr-4 flex-shrink-0"> <i class="fas fa-users text-white text-xl w-6 h-6 flex items-center justify-center"></i> </div>
                             <div>
-                                <p class="text-gray-500 text-sm">總用戶數</p>
-                                <p id="totalUsers" class="text-2xl font-bold text-gray-800">載入中...</p>
+                                <p class="text-gray-500 text-sm">一般用戶數</p>
+                                <p id="totalGeneralUsers" class="text-2xl font-bold text-gray-800">載入中...</p>
                             </div>
                         </div>
                          <div class="bg-white p-4 md:p-6 rounded-lg shadow-md flex items-center">
@@ -88,25 +88,39 @@
                              </div>
                          </div>
                          <div class="bg-white p-4 md:p-6 rounded-lg shadow-md flex items-center">
-                            <div class="bg-yellow-500 p-3 rounded-full mr-4 flex-shrink-0"> <i class="fas fa-dollar-sign text-white text-xl w-6 h-6 flex items-center justify-center"></i> </div>
+                            <div class="bg-purple-500 p-3 rounded-full mr-4 flex-shrink-0"> <i class="fas fa-map-marked-alt text-white text-xl w-6 h-6 flex items-center justify-center"></i> </div>
                             <div>
-                                <p class="text-gray-500 text-sm">總收入 (TWD)</p>
-                                <p id="totalRevenue" class="text-2xl font-bold text-gray-800">N/A</p> </div>
+                                <p class="text-gray-500 text-sm">總行程數</p>
+                                <p id="totalAttractions" class="text-2xl font-bold text-gray-800">載入中...</p>
+                            </div>
                         </div>
                     </div>
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">趨勢分析</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
-                            <h3 class="text-lg font-semibold text-gray-700 mb-4">每日預訂趨勢</h3>
-                            <div class="chart-container relative h-64 md:h-80"> <canvas id="bookingTrendChart"></canvas> </div>
-                            <p id="bookChartError" class="text-red-500 text-sm mt-2"></p>
-                        </div>
-                        <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
-                             <h3 class="text-lg font-semibold text-gray-700 mb-4">用戶角色分佈</h3>
-                             <div class="chart-container relative h-64 md:h-80"> <canvas id="userRoleChart"></canvas> </div>
-                             <p id="roleChartError" class="text-red-500 text-sm mt-2"></p>
-                        </div>
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">一般用戶分析</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                             <h3 class="text-lg font-semibold text-gray-700 mb-4">年齡分佈</h3>
+                             <div class="chart-container relative h-64 md:h-80"> <canvas id="userAgeChart"></canvas> </div>
+                             <p id="ageChartError" class="text-red-500 text-sm mt-2"></p>
+                         </div>
+                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                             <h3 class="text-lg font-semibold text-gray-700 mb-4">性別分佈</h3>
+                             <div class="chart-container relative h-64 md:h-80"> <canvas id="userGenderChart"></canvas> </div>
+                             <p id="genderChartError" class="text-red-500 text-sm mt-2"></p>
+                         </div>
                     </div>
+                     <h2 class="text-xl font-semibold text-gray-700 mb-4">趨勢分析</h2>
+                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                             <h3 class="text-lg font-semibold text-gray-700 mb-4">每日預訂趨勢</h3>
+                             <div class="chart-container relative h-64 md:h-80"> <canvas id="bookingTrendChart"></canvas> </div>
+                             <p id="bookChartError" class="text-red-500 text-sm mt-2"></p>
+                         </div>
+                         <div class="bg-white p-4 md:p-6 rounded-lg shadow-md">
+                              <h3 class="text-lg font-semibold text-gray-700 mb-4">用戶註冊趨勢</h3>
+                              <div class="chart-container relative h-64 md:h-80"> <canvas id="userRegistrationChart"></canvas> </div>
+                              <p id="regChartError" class="text-red-500 text-sm mt-2"></p>
+                         </div>
+                     </div>
                 </div>
 
                 <div id="attractionsContent" class="page-content hidden">
@@ -121,13 +135,14 @@
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">ID</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名稱</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">分類</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">行政區</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">捷運站</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">啟用狀態</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="attractionsTableBody" class="bg-white divide-y divide-gray-200">
-                                <tr> <td colspan="6" class="text-center py-4 text-gray-500">載入中...</td> </tr>
+                                <tr> <td colspan="7" class="text-center py-4 text-gray-500">載入中...</td> </tr>
                             </tbody>
                         </table>
                          <div id="attractionsPagination" class="mt-4 flex justify-center">
@@ -172,12 +187,14 @@
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">姓名</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Email</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">角色</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">註冊時間</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">年齡</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">性別</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">註冊時間</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
-                                <tr> <td colspan="6" class="text-center py-4 text-gray-500">載入中...</td> </tr>
+                                <tr> <td colspan="8" class="text-center py-4 text-gray-500">載入中...</td> </tr>
                             </tbody>
                         </table>
                     </div>
@@ -198,12 +215,28 @@
                  <p id="editError" class="text-red-500 text-sm mb-4 h-4"></p>
                 <div class="mb-4"> <label for="editUserName" class="block text-gray-700 text-sm font-bold mb-2">姓名</label> <input type="text" id="editUserName" name="editUserName" class="input-field" required> </div>
                 <div class="mb-4"> <label for="editUserEmail" class="block text-gray-700 text-sm font-bold mb-2">Email (帳號)</label> <input type="email" id="editUserEmail" name="editUserEmail" class="input-field" required> </div>
+                <div class="mb-4"> <label for="editUserPassword" class="block text-gray-700 text-sm font-bold mb-2">新密碼 (留空表示不更改)</label> <input type="password" id="editUserPassword" name="editUserPassword" placeholder="輸入新密碼 (至少6位)" class="input-field" minlength="6"> </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="editUserAge" class="block text-gray-700 text-sm font-bold mb-2">年齡</label>
+                        <input type="number" id="editUserAge" name="editUserAge" placeholder="輸入年齡" class="input-field">
+                    </div>
+                    <div>
+                        <label for="editUserGender" class="block text-gray-700 text-sm font-bold mb-2">性別</label>
+                        <select id="editUserGender" name="editUserGender" class="input-field">
+                            <option value="">未指定</option>
+                            <option value="male">男性</option>
+                            <option value="female">女性</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="mb-6">
                     <label for="editUserRole" class="block text-gray-700 text-sm font-bold mb-2">角色</label>
                     <select id="editUserRole" name="editUserRole" class="input-field">
-                        <option value="ROLE_USER">一般用戶</option>
-                        <option value="ROLE_TRIP_MANAGER">行程管理員</option>
-                        <option value="ROLE_ADMIN">管理員</option>
+                        <option value="USER">一般用戶</option>
+                        <option value="TRIP_MANAGER">行程管理員</option>
+                        <option value="ADMIN">管理員</option>
                     </select>
                 </div>
                 <div class="flex justify-end space-x-3"> <button type="button" id="cancelEditBtn" class="btn btn-secondary">取消</button> <button type="submit" id="saveEditBtn" class="btn btn-primary">儲存變更</button> </div>
@@ -223,12 +256,27 @@
                 <div class="mb-4"> <label for="addUserName" class="block text-gray-700 text-sm font-bold mb-2">姓名</label> <input type="text" id="addUserName" name="addUserName" placeholder="輸入姓名" class="input-field" required> </div>
                 <div class="mb-4"> <label for="addUserEmail" class="block text-gray-700 text-sm font-bold mb-2">Email (帳號)</label> <input type="email" id="addUserEmail" name="addUserEmail" placeholder="輸入 Email" class="input-field" required> </div>
                  <div class="mb-4"> <label for="addUserPassword" class="block text-gray-700 text-sm font-bold mb-2">密碼</label> <input type="password" id="addUserPassword" name="addUserPassword" placeholder="輸入至少 6 位密碼" class="input-field" required minlength="6"> </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                     <div>
+                         <label for="addUserAge" class="block text-gray-700 text-sm font-bold mb-2">年齡</label>
+                         <input type="number" id="addUserAge" name="addUserAge" placeholder="輸入年齡" class="input-field">
+                     </div>
+                     <div>
+                         <label for="addUserGender" class="block text-gray-700 text-sm font-bold mb-2">性別</label>
+                         <select id="addUserGender" name="addUserGender" class="input-field">
+                             <option value="">未指定</option>
+                             <option value="male">男性</option>
+                             <option value="female">女性</option>
+                             <option value="other">其他</option>
+                         </select>
+                     </div>
+                 </div>
                 <div class="mb-6">
                     <label for="addUserRole" class="block text-gray-700 text-sm font-bold mb-2">角色</label>
                     <select id="addUserRole" name="addUserRole" class="input-field">
-                        <option value="ROLE_USER" selected>一般用戶</option>
-                        <option value="ROLE_TRIP_MANAGER">行程管理員</option>
-                        <option value="ROLE_ADMIN">管理員</option>
+                        <option value="USER" selected>一般用戶</option>
+                        <option value="TRIP_MANAGER">行程管理員</option>
+                        <option value="ADMIN">管理員</option>
                     </select>
                 </div>
                 <div class="flex justify-end space-x-3"> <button type="button" id="cancelAddBtn" class="btn btn-secondary">取消</button> <button type="submit" id="saveAddBtn" class="btn btn-primary">確認新增</button> </div>
@@ -349,19 +397,37 @@
                             <label for="attractionAddress" class="block text-gray-700 text-sm font-bold mb-2">地址</label>
                             <input type="text" id="attractionAddress" name="attractionAddress" placeholder="輸入行程地址" class="input-field">
                         </div>
-                        <div class="sm:col-span-2">
+                         <div class="sm:col-span-2">
                             <label for="attractionImageUrl" class="block text-gray-700 text-sm font-bold mb-2">圖片 URL</label>
-                            <input type="text" id="attractionImageUrl" name="attractionImageUrl" placeholder="輸入圖片網址 (例如: /images/attraction.jpg)" class="input-field">
-                            <p class="text-xs text-gray-500 mt-1">請提供相對於網站根目錄的路徑或完整的 URL。</p>
+                            <input type="text" id="attractionImageUrl" name="attractionImageUrl" placeholder="輸入圖片的完整網址 (http://...)或是相對路徑" class="input-field">
+                        </div>
+                        <div>
+                            <label for="attractionDistrict" class="block text-gray-700 text-sm font-bold mb-2">行政區</label>
+                            <input type="text" id="attractionDistrict" name="attractionDistrict" placeholder="例如: 中正區" class="input-field">
+                        </div>
+                        <div>
+                            <label for="attractionCategory" class="block text-gray-700 text-sm font-bold mb-2">分類</label>
+                            <input type="text" id="attractionCategory" name="attractionCategory" placeholder="例如: 文化古蹟" class="input-field">
                         </div>
                         <div>
                             <label for="attractionMrt" class="block text-gray-700 text-sm font-bold mb-2">捷運站</label>
                             <input type="text" id="attractionMrt" name="attractionMrt" placeholder="例如: 台北車站" class="input-field">
                         </div>
                         <div>
-                            <label for="attractionCategory" class="block text-gray-700 text-sm font-bold mb-2">分類</label>
-                            <input type="text" id="attractionCategory" name="attractionCategory" placeholder="例如: 文化古蹟" class="input-field">
+                            <label for="attractionTransport" class="block text-gray-700 text-sm font-bold mb-2">交通方式</label>
+                            <input type="text" id="attractionTransport" name="attractionTransport" placeholder="簡述交通方式" class="input-field">
                         </div>
+                         <div class="grid grid-cols-2 gap-x-6">
+                             <div>
+                                <label for="attractionLat" class="block text-gray-700 text-sm font-bold mb-2">緯度 (Lat)</label>
+                                <input type="number" step="any" id="attractionLat" name="attractionLat" placeholder="例如: 25.0330" class="input-field">
+                            </div>
+                            <div>
+                                <label for="attractionLng" class="block text-gray-700 text-sm font-bold mb-2">經度 (Lng)</label>
+                                <input type="number" step="any" id="attractionLng" name="attractionLng" placeholder="例如: 121.5654" class="input-field">
+                            </div>
+                         </div>
+
                         <div class="sm:col-span-2">
                             <label class="block text-gray-700 text-sm font-bold mb-2">啟用狀態</label>
                             <div class="flex items-center space-x-4">
