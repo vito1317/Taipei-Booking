@@ -418,7 +418,7 @@ function handleLogin(event) {
     }
 
     $.ajax({
-        url: 'http://localhost:8080/api/auth/login',
+        url: 'http://localhost:8080/api/user/login',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ email: username, password: password }),
